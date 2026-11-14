@@ -1,10 +1,11 @@
 import * as Phaser from 'phaser'
 import { IconBar, type IconBarOptions } from './IconBar'
+import { TileCounter, type TileCounterOptions } from './TileCounter'
 
 const MARGIN = 4
 const ROW_HEIGHT = 16
 
-/** Interface fixe en haut à gauche : les rangées d'icônes s'empilent les unes sous les autres. */
+/** Interface fixe en haut à gauche : les rangées (icônes, compteurs) s'empilent les unes sous les autres. */
 export class Hud {
   private readonly scene: Phaser.Scene
   private nextY = MARGIN + ROW_HEIGHT / 2
@@ -17,5 +18,11 @@ export class Hud {
     const bar = new IconBar(this.scene, MARGIN, this.nextY, options)
     this.nextY += ROW_HEIGHT
     return bar
+  }
+
+  addCounter(options: TileCounterOptions) {
+    const counter = new TileCounter(this.scene, MARGIN, this.nextY, options)
+    this.nextY += ROW_HEIGHT
+    return counter
   }
 }

@@ -94,6 +94,16 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.updateAnimation(grounded)
   }
 
+  /** Direction du regard : 1 = droite, -1 = gauche (les images regardent vers la droite). */
+  get facing(): 1 | -1 {
+    return this.flipX ? -1 : 1
+  }
+
+  /** Peut agir (lancer…) : ni figé, ni en plein recul. */
+  get canAct() {
+    return !this.frozen && this.scene.time.now >= this.knockbackUntil
+  }
+
   setSpawn(x: number, y: number) {
     this.spawnX = x
     this.spawnY = y

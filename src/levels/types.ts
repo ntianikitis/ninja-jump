@@ -15,6 +15,8 @@ export type LevelObject =
   | { type: 'heart'; x: number; y?: number }
   /** Pièce à collectionner (score) ; y = rangée au-dessus du sol (1 par défaut). */
   | { type: 'coin'; x: number; y?: number }
+  /** Coffre à shurikens ; y = rangée où il est posé (1 = sur le sol, 4 = sur un bloc de 3). */
+  | { type: 'chest'; x: number; y?: number; shurikens?: number }
 
 export type LevelData = {
   /** Largeur du niveau, en tuiles. */

@@ -12,6 +12,11 @@ export const PALETTE = {
   grassDark: '#22805f',
   red: '#fc683b',
   coin: '#fee481',
+  gold: '#f4b41b',
+  woodDark: '#9f5a52',
+  metal: '#959ab1',
+  metalLight: '#dce1e7',
+  shadow: '#2b2f3d',
   // Tête de ninja (vies).
   hood: '#4f5670',
   hoodDark: '#383e52',

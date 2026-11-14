@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import { ANIMS, CHARS, KENNEY } from '../art/kenneyTiles'
+import { PX_ANIMS, TEX } from '../art/pixelTextures'
 import { ENEMY_PATROL_DISTANCE, ENEMY_SPEED } from '../config'
 
 // Hitbox dans l'image de 24x24 : le corps de la bestiole, sans la pointe du casque.
@@ -26,6 +27,14 @@ export class Enemy extends Phaser.GameObjects.Sprite {
 
     this.minX = x - ENEMY_PATROL_DISTANCE / 2
     this.maxX = x + ENEMY_PATROL_DISTANCE / 2
+  }
+
+  /** Touché par un shuriken : petit nuage de fumée, puis disparition. */
+  defeat() {
+    this.body.enable = false
+    const poof = this.scene.add.sprite(this.x, this.y - 8, TEX.poof[0]).play(PX_ANIMS.poof)
+    poof.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => poof.destroy())
+    this.destroy()
   }
 
   update() {

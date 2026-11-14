@@ -27,5 +27,12 @@ export const KNOCKBACK_X = 73
 export const KNOCKBACK_Y = -107
 export const KNOCKBACK_MS = 300
 
+// Shurikens : munitions au départ et par coffre, vitesse (px/s), portée (8 tuiles), délai entre deux lancers.
+export const SHURIKEN_START = 3
+export const SHURIKENS_PER_CHEST = 5
+export const SHURIKEN_SPEED = 180
+export const SHURIKEN_RANGE = 144
+export const SHURIKEN_COOLDOWN_MS = 350
+
 // Contours de collision visibles (utile pour régler hitbox et niveau).
 export const DEBUG_PHYSICS = false

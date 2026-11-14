@@ -1,13 +1,24 @@
 import * as Phaser from 'phaser'
 import { ANIMS, BG, BG_TILE_SIZE, KENNEY, TILE_SIZE, TILES } from '../art/kenneyTiles'
-import { LIFE_LOST_MS, PLAYER_MAX_HEALTH, PLAYER_START_LIVES } from '../config'
+import { TEX } from '../art/pixelTextures'
+import { Sfx } from '../audio/sfx'
+import {
+  LIFE_LOST_MS,
+  PLAYER_MAX_HEALTH,
+  PLAYER_START_LIVES,
+  SHURIKEN_COOLDOWN_MS,
+  SHURIKEN_START,
+} from '../config'
 import { InputController } from '../input/InputController'
 import { level1 } from '../levels/level1'
-import type { LevelData } from '../levels/types'
+import type { LevelData, LevelObject } from '../levels/types'
+import { Chest } from '../objects/Chest'
 import { Enemy } from '../objects/Enemy'
 import { HEALTH_CHANGED, HEALTH_DEPLETED, Player } from '../objects/Player'
+import { Shuriken } from '../objects/Shuriken'
 import { Hud } from '../ui/Hud'
 import { LivesCounter } from '../ui/LivesCounter'
+import type { TileCounter } from '../ui/TileCounter'
 import type { GameOverData } from './GameOverScene'
 
 // Le sol occupe les 2 dernières rangées de tuiles sur 10 (écran de 180 px).
@@ -23,6 +34,12 @@ const HEART_SPACING = 14
 // Parallaxe de l'horizon (nuages et arbres du pack).
 const HORIZON_SCROLL = 0.3
 const HORIZON_TEXTURE = 'bg-horizon'
+// Récompense d'un coffre : délai entre deux shurikens qui volent vers le compteur, durée du vol.
+const REWARD_STAGGER_MS = 120
+const REWARD_FLIGHT_MS = 650
+
+/** Celui des deux objets d'un contact qui est un shuriken (l'ordre n'est pas garanti). */
+const asShuriken = (a: unknown, b: unknown) => [a, b].find((obj) => obj instanceof Shuriken)
 
 /** Centre d'une colonne de tuiles, en pixels. */
 const colCenter = (col: number) => col * TILE_SIZE + TILE_SIZE / 2
@@ -33,10 +50,15 @@ export class GameScene extends Phaser.Scene {
   private inputController!: InputController
   private player!: Player
   private enemies: Enemy[] = []
+  private shurikens!: Phaser.Physics.Arcade.Group
   private livesCounter!: LivesCounter
+  private ammoCounter!: TileCounter
+  private sfx!: Sfx
   private finished = false
   private lives = PLAYER_START_LIVES
   private coins = 0
+  private ammo = SHURIKEN_START
+  private lastThrowAt = -Infinity
   /** Perte d'une vie en cours (animation, puis checkpoint ou écran « Oups ! »). */
   private losingLife = false
 
@@ -54,7 +76,10 @@ export class GameScene extends Phaser.Scene {
     this.finished = false
     this.lives = PLAYER_START_LIVES
     this.coins = 0
+    this.ammo = SHURIKEN_START
+    this.lastThrowAt = -Infinity
     this.losingLife = false
+    this.sfx = new Sfx(this)
 
     // Pas de bord en bas : le joueur doit pouvoir tomber dans les trous.
     this.physics.world.setBounds(0, 0, levelWidth, height)
@@ -66,25 +91,27 @@ export class GameScene extends Phaser.Scene {
     this.player = new Player(this, colCenter(level.spawnX), SPAWN_Y)
     this.physics.add.collider(this.player, solids)
 
-    for (const obj of level.objects) {
-      if (obj.type === 'enemy') {
-        this.enemies.push(new Enemy(this, colCenter(obj.x), GROUND_TOP))
-      } else if (obj.type === 'checkpoint') {
-        this.createCheckpoint(colCenter(obj.x))
-      } else if (obj.type === 'finish') {
-        this.createFinish(colCenter(obj.x))
-      } else if (obj.type === 'heart') {
-        this.createHeart(colCenter(obj.x), rowCenter(obj.y ?? 1))
-      } else if (obj.type === 'coin') {
-        this.createCoin(colCenter(obj.x), rowCenter(obj.y ?? 1))
-      }
-    }
+    for (const obj of level.objects) this.spawnObject(obj)
 
     this.physics.add.overlap(this.player, this.enemies, (_player, enemy) =>
       this.player.hit((enemy as Enemy).x),
     )
 
-    const healthBar = new Hud(this).addBar({
+    // Shurikens lancés : ils s'arrêtent sur les blocs et le sol, et battent les ennemis.
+    // Attention : pour un groupe testé contre une liste, Phaser passe les deux objets dans l'ordre
+    // inverse ; on identifie donc le shuriken explicitement.
+    this.shurikens = this.physics.add.group({ allowGravity: false })
+    this.physics.add.collider(this.shurikens, solids, (a, b) => asShuriken(a, b)?.destroy())
+    this.physics.add.overlap(this.shurikens, this.enemies, (a, b) => {
+      const shuriken = asShuriken(a, b)
+      const enemy = [a, b].find((obj) => obj instanceof Enemy)
+      if (!shuriken || !enemy) return
+      shuriken.destroy()
+      this.defeatEnemy(enemy)
+    })
+
+    const hud = new Hud(this)
+    const healthBar = hud.addBar({
       texture: KENNEY.tiles,
       fullFrame: TILES.heartFull,
       emptyFrame: TILES.heartEmpty,
@@ -95,20 +122,53 @@ export class GameScene extends Phaser.Scene {
     this.player.on(HEALTH_CHANGED, (health: number) => healthBar.setValue(health))
     this.player.on(HEALTH_DEPLETED, () => this.loseLife())
     this.livesCounter = new LivesCounter(this, healthBar.right + LIVES_GAP, healthBar.y, this.lives)
+    this.ammoCounter = hud.addCounter({ icon: TEX.shuriken, value: this.ammo })
 
     this.cameras.main.setBounds(0, 0, levelWidth, height)
     this.cameras.main.startFollow(this.player, true, 0.1, 0)
 
     this.inputController = new InputController(this)
+    this.inputController.setThrowEnabled(this.ammo > 0)
+  }
+
+  /**
+   * Crée un objet du niveau (coordonnées en tuiles). Point d'entrée unique : un futur chargeur
+   * Tiled n'aura qu'à convertir ses objets (ex. classe « chest », propriété « shurikens ») en LevelObject.
+   */
+  private spawnObject(obj: LevelObject) {
+    switch (obj.type) {
+      case 'enemy':
+        this.enemies.push(new Enemy(this, colCenter(obj.x), GROUND_TOP))
+        break
+      case 'checkpoint':
+        this.createCheckpoint(colCenter(obj.x))
+        break
+      case 'finish':
+        this.createFinish(colCenter(obj.x))
+        break
+      case 'heart':
+        this.createHeart(colCenter(obj.x), rowCenter(obj.y ?? 1))
+        break
+      case 'coin':
+        this.createCoin(colCenter(obj.x), rowCenter(obj.y ?? 1))
+        break
+      case 'chest':
+        this.createChest(colCenter(obj.x), rowCenter(obj.y ?? 1) + TILE_SIZE / 2, obj.shurikens)
+        break
+    }
   }
 
   update() {
     this.inputController.update()
     for (const enemy of this.enemies) enemy.update()
 
+    // Copie : un shuriken peut se détruire pendant sa mise à jour.
+    for (const shuriken of [...this.shurikens.getChildren()]) shuriken.update()
+
     if (this.finished || this.losingLife) return
 
     this.player.update(this.inputController)
+    if (this.inputController.throwPressed) this.tryThrow()
 
     // Tomber dans un trou fait perdre une vie directement.
     if (this.player.y > this.scale.height + 34) {
@@ -198,6 +258,71 @@ export class GameScene extends Phaser.Scene {
     }
 
     return solids
+  }
+
+  /** Lance un shuriken dans la direction du regard, s'il en reste et si le délai est écoulé. */
+  private tryThrow() {
+    const now = this.time.now
+    if (!this.player.canAct || now - this.lastThrowAt < SHURIKEN_COOLDOWN_MS) return
+    this.lastThrowAt = now
+
+    if (this.ammo === 0) {
+      this.sfx.empty()
+      return
+    }
+
+    const direction = this.player.facing
+    // Lancé bas (10 px au-dessus des pieds) pour toucher les ennemis au sol, qui sont petits.
+    const shuriken = new Shuriken(this, this.player.x + direction * 6, this.player.body.bottom - 10)
+    this.shurikens.add(shuriken)
+    shuriken.launch(direction)
+    this.setAmmo(this.ammo - 1)
+    this.sfx.throw()
+  }
+
+  private setAmmo(value: number) {
+    this.ammo = value
+    this.ammoCounter.setValue(value)
+    this.inputController.setThrowEnabled(value > 0)
+  }
+
+  private defeatEnemy(enemy: Enemy) {
+    const index = this.enemies.indexOf(enemy)
+    if (!enemy.active || index === -1) return
+    this.enemies.splice(index, 1)
+    enemy.defeat()
+    this.sfx.poof()
+  }
+
+  /** Coffre : à l'ouverture, ses shurikens jaillissent puis volent un par un jusqu'au compteur. */
+  private createChest(x: number, bottom: number, shurikens?: number) {
+    const chest = new Chest(this, x, bottom, { shurikens })
+    this.physics.add.overlap(this.player, chest, () => {
+      const reward = chest.open()
+      if (reward === 0) return
+      this.sfx.reward()
+
+      const camera = this.cameras.main
+      const start = { x: chest.x - camera.scrollX, y: chest.y - 10 - camera.scrollY }
+      const target = this.ammoCounter.iconCenter
+      for (let i = 0; i < reward; i++) {
+        // Chaque shuriken vole à l'écran (fixe par rapport à la caméra), en jaillissant d'abord vers le haut.
+        const star = this.add.image(start.x, start.y, TEX.shuriken).setScrollFactor(0).setDepth(1100).setVisible(false)
+        const burstX = start.x + (i - (reward - 1) / 2) * 8
+        this.tweens.chain({
+          targets: star,
+          delay: 150 + i * REWARD_STAGGER_MS,
+          tweens: [
+            { x: burstX, y: start.y - 22, angle: 180, duration: 220, ease: 'Quad.Out', onStart: () => star.setVisible(true) },
+            { x: target.x, y: target.y, angle: 720, duration: REWARD_FLIGHT_MS, ease: 'Quad.In' },
+          ],
+          onComplete: () => {
+            star.destroy()
+            this.setAmmo(this.ammo + 1)
+          },
+        })
+      }
+    })
   }
 
   /** −1 vie : la tête clignote, puis retour au checkpoint avec tous les cœurs, ou écran « Oups ! ». */

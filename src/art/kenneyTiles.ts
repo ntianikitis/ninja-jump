@@ -46,6 +46,9 @@ export const TILES = {
   flag: 111,
   flagWaving: 112,
   flagPole: 131,
+  // Police du pack : « x » et chiffres 0 à 9 (160 + chiffre).
+  times: 158,
+  digit0: 160,
 } as const
 
 // Numéro d'un personnage de characters.png = ligne × 9 + colonne.
