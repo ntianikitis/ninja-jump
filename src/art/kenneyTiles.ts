@@ -3,14 +3,12 @@ import type * as Phaser from 'phaser'
 
 export const KENNEY = {
   tiles: 'kenney-tiles',
-  backgrounds: 'kenney-backgrounds',
   characters: 'kenney-characters',
 } as const
 
 /** Taille d'une tuile de tiles.png (px). */
 export const TILE_SIZE = 18
-/** Taille d'une tuile de backgrounds.png et d'un personnage de characters.png (px). */
-export const BG_TILE_SIZE = 24
+/** Taille d'un personnage de characters.png (px). */
 export const CHAR_SIZE = 24
 
 // Numéro d'une tuile de tiles.png = ligne × 20 + colonne.
@@ -72,14 +70,5 @@ export function createKenneyAnimations(scene: Phaser.Scene) {
   scene.anims.create({ key: ANIMS.flagWave, frames: frames(KENNEY.tiles, TILES.flag, TILES.flagWaving), frameRate: 4, repeat: -1 })
 }
 
-// backgrounds.png : 8 colonnes ; les colonnes 0 à 3 forment le fond « jour ».
-export const BG = {
-  columns: 8,
-  dayColumns: 4,
-  /** Ligne 1 : nuages et arbres à l'horizon ; ligne 2 : bas uni. */
-  horizonRow: 1,
-  lowRow: 2,
-} as const
-
-/** Couleur du ciel « jour » (ligne 0 de backgrounds.png). */
+/** Couleur du ciel « jour » du pack (utilisée si la map Tiled n'a pas de couleur de fond). */
 export const SKY_COLOR = '#dff6f5'

@@ -13,7 +13,8 @@ export class Enemy extends Phaser.GameObjects.Sprite {
   private readonly minX: number
   private readonly maxX: number
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  /** `patrolDistance` : distance totale parcourue entre les deux demi-tours (px). */
+  constructor(scene: Phaser.Scene, x: number, y: number, patrolDistance = ENEMY_PATROL_DISTANCE) {
     super(scene, x, y, KENNEY.characters, CHARS.spikyWalk1)
     this.setOrigin(0.5, 1)
 
@@ -25,8 +26,8 @@ export class Enemy extends Phaser.GameObjects.Sprite {
     this.body.setImmovable(true)
     this.body.setVelocityX(ENEMY_SPEED)
 
-    this.minX = x - ENEMY_PATROL_DISTANCE / 2
-    this.maxX = x + ENEMY_PATROL_DISTANCE / 2
+    this.minX = x - patrolDistance / 2
+    this.maxX = x + patrolDistance / 2
   }
 
   /** Touché par un shuriken : petit nuage de fumée, puis disparition. */

@@ -28,6 +28,11 @@ export class Sfx {
     this.tone(140, 120, 0.06, 'square', 0.08)
   }
 
+  /** Petit « tip » : objet ramassé. */
+  pickup() {
+    this.tone(990, 1480, 0.08, 'triangle', 0.12)
+  }
+
   /** Petite mélodie montante : coffre ouvert. */
   reward() {
     ;[660, 880, 1320].forEach((freq, i) => this.tone(freq, freq, 0.12, 'triangle', 0.15, i * 0.09))

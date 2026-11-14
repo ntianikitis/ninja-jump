@@ -1,8 +1,9 @@
 import * as Phaser from 'phaser'
-import { ANIMS, BG, BG_TILE_SIZE, KENNEY, TILE_SIZE, TILES } from '../art/kenneyTiles'
+import { ANIMS, KENNEY, SKY_COLOR, TILE_SIZE, TILES } from '../art/kenneyTiles'
 import { TEX } from '../art/pixelTextures'
 import { Sfx } from '../audio/sfx'
 import {
+  ENEMY_PATROL_DISTANCE,
   LIFE_LOST_MS,
   PLAYER_MAX_HEALTH,
   PLAYER_START_LIVES,
@@ -10,8 +11,16 @@ import {
   SHURIKEN_START,
 } from '../config'
 import { InputController } from '../input/InputController'
-import { level1 } from '../levels/level1'
-import type { LevelData, LevelObject } from '../levels/types'
+import {
+  imageKey,
+  LAYERS,
+  LEVEL_KEY,
+  type LevelEntity,
+  readBackgroundColor,
+  readEntities,
+  readImageLayer,
+  TILESET_NAME,
+} from '../levels/tiledLevel'
 import { Chest } from '../objects/Chest'
 import { Enemy } from '../objects/Enemy'
 import { HEALTH_CHANGED, HEALTH_DEPLETED, Player } from '../objects/Player'
@@ -21,30 +30,20 @@ import { LivesCounter } from '../ui/LivesCounter'
 import type { TileCounter } from '../ui/TileCounter'
 import type { GameOverData } from './GameOverScene'
 
-// Le sol occupe les 2 dernières rangées de tuiles sur 10 (écran de 180 px).
-const ROWS = 10
-const GROUND_ROW = 8
-const GROUND_TOP = GROUND_ROW * TILE_SIZE
-// Hauteur du centre du joueur à l'apparition (il tombe un peu jusqu'au sol).
-const SPAWN_Y = GROUND_TOP - 20
+// Hauteur du centre du joueur au-dessus de ses pieds à l'apparition (il tombe un peu).
+const SPAWN_HEIGHT = 20
 const RESTART_DELAY_MS = 2000
 const LIVES_GAP = 4
 // Les cœurs du pack (18 px, dessin d'environ 14 px) se suivent tous les 14 px.
 const HEART_SPACING = 14
-// Parallaxe de l'horizon (nuages et arbres du pack).
-const HORIZON_SCROLL = 0.3
-const HORIZON_TEXTURE = 'bg-horizon'
 // Récompense d'un coffre : délai entre deux shurikens qui volent vers le compteur, durée du vol.
 const REWARD_STAGGER_MS = 120
 const REWARD_FLIGHT_MS = 650
+// Profondeurs d'affichage des calques Tiled (le joueur et les objets sont à 0).
+const DEPTH = { background: -100, decorBack: -10, terrain: -5, foreground: 500 }
 
 /** Celui des deux objets d'un contact qui est un shuriken (l'ordre n'est pas garanti). */
 const asShuriken = (a: unknown, b: unknown) => [a, b].find((obj) => obj instanceof Shuriken)
-
-/** Centre d'une colonne de tuiles, en pixels. */
-const colCenter = (col: number) => col * TILE_SIZE + TILE_SIZE / 2
-/** Centre d'un objet posé `row` rangées au-dessus du sol (1 = juste au-dessus). */
-const rowCenter = (row: number) => GROUND_TOP - (row - 0.5) * TILE_SIZE
 
 export class GameScene extends Phaser.Scene {
   private inputController!: InputController
@@ -54,6 +53,7 @@ export class GameScene extends Phaser.Scene {
   private livesCounter!: LivesCounter
   private ammoCounter!: TileCounter
   private sfx!: Sfx
+  private levelHeight = 0
   private finished = false
   private lives = PLAYER_START_LIVES
   private coins = 0
@@ -67,10 +67,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    const level = level1
-    const levelWidth = level.width * TILE_SIZE
-    const { height } = this.scale
-
     // La scène est réutilisée par restart() : on remet son état à zéro.
     this.enemies = []
     this.finished = false
@@ -81,27 +77,44 @@ export class GameScene extends Phaser.Scene {
     this.losingLife = false
     this.sfx = new Sfx(this)
 
+    // Map Tiled : calques de tuiles, terrain solide, puis objets.
+    const map = this.make.tilemap({ key: LEVEL_KEY })
+    const tileset = map.addTilesetImage(TILESET_NAME, KENNEY.tiles)
+    if (!tileset) throw new Error(`Tileset « ${TILESET_NAME} » introuvable dans la map`)
+    const levelWidth = map.widthInPixels
+    this.levelHeight = map.heightInPixels
+
+    this.cameras.main.setBackgroundColor(readBackgroundColor(this) ?? SKY_COLOR)
     // Pas de bord en bas : le joueur doit pouvoir tomber dans les trous.
-    this.physics.world.setBounds(0, 0, levelWidth, height)
+    this.physics.world.setBounds(0, 0, levelWidth, this.levelHeight)
     this.physics.world.setBoundsCollision(true, true, true, false)
 
     this.createBackground(levelWidth)
-    const solids = this.createTerrain(level)
+    map.createLayer(LAYERS.decorBack, tileset)?.setDepth(DEPTH.decorBack)
+    const terrain = map.createLayer(LAYERS.terrain, tileset)
+    if (!terrain) throw new Error(`Calque « ${LAYERS.terrain} » introuvable dans la map`)
+    terrain.setDepth(DEPTH.terrain).setCollisionByExclusion([-1])
+    map.createLayer(LAYERS.foreground, tileset)?.setDepth(DEPTH.foreground)
 
-    this.player = new Player(this, colCenter(level.spawnX), SPAWN_Y)
-    this.physics.add.collider(this.player, solids)
+    const entities = readEntities(map)
+    const start = entities.find((e) => e.name === 'player-start')
+    if (!start) throw new Error('Objet « player-start » manquant dans le calque Objets')
+    if (!entities.some((e) => e.name === 'flag')) throw new Error('Objet « flag » manquant dans le calque Objets')
 
-    for (const obj of level.objects) this.spawnObject(obj)
+    this.player = new Player(this, start.x, start.bottom - SPAWN_HEIGHT)
+    this.physics.add.collider(this.player, terrain)
+
+    for (const entity of entities) this.spawnObject(entity)
 
     this.physics.add.overlap(this.player, this.enemies, (_player, enemy) =>
       this.player.hit((enemy as Enemy).x),
     )
 
-    // Shurikens lancés : ils s'arrêtent sur les blocs et le sol, et battent les ennemis.
-    // Attention : pour un groupe testé contre une liste, Phaser passe les deux objets dans l'ordre
-    // inverse ; on identifie donc le shuriken explicitement.
+    // Shurikens lancés : ils s'arrêtent sur le terrain, et battent les ennemis.
+    // Attention : pour un groupe testé contre une liste ou un calque, Phaser peut passer les deux
+    // objets dans l'ordre inverse ; on identifie donc le shuriken explicitement.
     this.shurikens = this.physics.add.group({ allowGravity: false })
-    this.physics.add.collider(this.shurikens, solids, (a, b) => asShuriken(a, b)?.destroy())
+    this.physics.add.collider(this.shurikens, terrain, (a, b) => asShuriken(a, b)?.destroy())
     this.physics.add.overlap(this.shurikens, this.enemies, (a, b) => {
       const shuriken = asShuriken(a, b)
       const enemy = [a, b].find((obj) => obj instanceof Enemy)
@@ -124,44 +137,53 @@ export class GameScene extends Phaser.Scene {
     this.livesCounter = new LivesCounter(this, healthBar.right + LIVES_GAP, healthBar.y, this.lives)
     this.ammoCounter = hud.addCounter({ icon: TEX.shuriken, value: this.ammo })
 
-    this.cameras.main.setBounds(0, 0, levelWidth, height)
-    this.cameras.main.startFollow(this.player, true, 0.1, 0)
+    // La caméra ne suit verticalement que si la map est plus haute que l'écran.
+    const followY = this.levelHeight > this.scale.height ? 0.1 : 0
+    this.cameras.main.setBounds(0, 0, levelWidth, this.levelHeight)
+    this.cameras.main.startFollow(this.player, true, 0.1, followY)
 
     this.inputController = new InputController(this)
     this.inputController.setThrowEnabled(this.ammo > 0)
   }
 
-  /**
-   * Crée un objet du niveau (coordonnées en tuiles). Point d'entrée unique : un futur chargeur
-   * Tiled n'aura qu'à convertir ses objets (ex. classe « chest », propriété « shurikens ») en LevelObject.
-   */
-  private spawnObject(obj: LevelObject) {
-    switch (obj.type) {
-      case 'enemy':
-        this.enemies.push(new Enemy(this, colCenter(obj.x), GROUND_TOP))
+  /** Crée l'élément de jeu correspondant à un objet du calque Objets (par son nom). */
+  private spawnObject({ name, x, bottom, props }: LevelEntity) {
+    // Les objets « au sol » (pièces, cœurs…) ont leur centre une demi-tuile au-dessus de leur bas.
+    const center = bottom - TILE_SIZE / 2
+    switch (name) {
+      case 'player-start':
         break
-      case 'checkpoint':
-        this.createCheckpoint(colCenter(obj.x))
+      case 'enemy': {
+        const patrolTiles = typeof props.patrol === 'number' ? props.patrol : undefined
+        this.enemies.push(new Enemy(this, x, bottom, patrolTiles ? patrolTiles * TILE_SIZE : ENEMY_PATROL_DISTANCE))
         break
-      case 'finish':
-        this.createFinish(colCenter(obj.x))
+      }
+      case 'coin':
+        this.createCoin(x, center)
         break
       case 'heart':
-        this.createHeart(colCenter(obj.x), rowCenter(obj.y ?? 1))
+        this.createHeart(x, center)
         break
-      case 'coin':
-        this.createCoin(colCenter(obj.x), rowCenter(obj.y ?? 1))
+      case 'energy':
+        this.createEnergy(x, center)
+        break
+      case 'checkpoint':
+        this.createCheckpoint(x, bottom)
+        break
+      case 'flag':
+        this.createFinish(x, bottom)
         break
       case 'chest':
-        this.createChest(colCenter(obj.x), rowCenter(obj.y ?? 1) + TILE_SIZE / 2, obj.shurikens)
+        this.createChest(x, bottom, typeof props.shurikens === 'number' ? props.shurikens : undefined)
         break
+      default:
+        console.warn(`Objet Tiled inconnu : « ${name} » (ignoré)`)
     }
   }
 
   update() {
     this.inputController.update()
     for (const enemy of this.enemies) enemy.update()
-
     // Copie : un shuriken peut se détruire pendant sa mise à jour.
     for (const shuriken of [...this.shurikens.getChildren()]) shuriken.update()
 
@@ -171,93 +193,30 @@ export class GameScene extends Phaser.Scene {
     if (this.inputController.throwPressed) this.tryThrow()
 
     // Tomber dans un trou fait perdre une vie directement.
-    if (this.player.y > this.scale.height + 34) {
+    if (this.player.y > this.levelHeight + 34) {
       this.player.freeze()
       this.loseLife()
     }
   }
 
-  /** Ciel uni (couleur de fond du jeu) et horizon du pack en parallaxe. */
+  /** Calque image « Fond » : répété horizontalement, avec la parallaxe réglée dans Tiled. */
   private createBackground(levelWidth: number) {
+    const layer = readImageLayer(this, LAYERS.background)
+    if (!layer) return
+    const key = imageKey(layer.image)
+    if (!this.textures.exists(key)) {
+      console.warn(`Image de fond « ${layer.image} » non chargée (voir BootScene)`)
+      return
+    }
+    const parallaxX = layer.parallaxx ?? 1
     const { width } = this.scale
-    const maxScroll = levelWidth - width
-
-    // Bande d'horizon : colonnes « jour » de backgrounds.png, lignes horizon + bas, recollées.
-    if (!this.textures.exists(HORIZON_TEXTURE)) {
-      const w = BG.dayColumns * BG_TILE_SIZE
-      const h = 2 * BG_TILE_SIZE
-      const strip = this.textures.createCanvas(HORIZON_TEXTURE, w, h)!
-      const source = this.textures.get(KENNEY.backgrounds).getSourceImage() as HTMLImageElement
-      strip.context.drawImage(source, 0, BG.horizonRow * BG_TILE_SIZE, w, h, 0, 0, w, h)
-      strip.refresh()
-    }
-    // Une couche qui défile à `factor` parcourt maxScroll × factor : on la remplit sur cette largeur.
+    // Une couche qui défile à `parallaxX` parcourt (levelWidth - width) × parallaxX : on la remplit sur cette largeur.
+    const span = width + (levelWidth - width) * parallaxX
     this.add
-      .tileSprite(0, GROUND_TOP - 40, width + maxScroll * HORIZON_SCROLL, 2 * BG_TILE_SIZE, HORIZON_TEXTURE)
+      .tileSprite(layer.offsetx ?? 0, layer.offsety ?? 0, span, this.textures.getFrame(key).height, key)
       .setOrigin(0)
-      .setScrollFactor(HORIZON_SCROLL, 0)
-      .setDepth(-90)
-  }
-
-  /** Sol (sauf aux trous) et blocs en tuiles du pack ; renvoie les zones de collision. */
-  private createTerrain(level: LevelData) {
-    const map = this.make.tilemap({ tileWidth: TILE_SIZE, tileHeight: TILE_SIZE, width: level.width, height: ROWS })
-    const tileset = map.addTilesetImage(KENNEY.tiles, KENNEY.tiles, TILE_SIZE, TILE_SIZE, 0, 0)!
-    const layer = map.createBlankLayer('terrain', tileset)!
-
-    const solids: Phaser.GameObjects.Zone[] = []
-    /**
-     * Rectangle de terrain : herbe en haut, terre en dessous. Bords gauche/droit visibles ou non ;
-     * `closedBottom` = contour en bas (blocs), sinon la terre continue sous l'écran (sol).
-     */
-    const addTerrain = (col: number, row: number, w: number, h: number, edges: { left: boolean; right: boolean; closedBottom: boolean }) => {
-      const T = TILES
-      for (let c = col; c < col + w; c++) {
-        const left = edges.left && c === col
-        const right = edges.right && c === col + w - 1
-        const pick = (single: number, l: number, mid: number, r: number) =>
-          left && right ? single : left ? l : right ? r : mid
-
-        for (let r = row; r < row + h; r++) {
-          const top = r === row
-          const bottom = edges.closedBottom && r === row + h - 1
-          const tile =
-            top && bottom ? pick(T.slabSingle, T.slabLeft, T.slabMid, T.slabRight)
-            : top ? pick(T.grassSingle, T.grassLeft, T.grassMid, T.grassRight)
-            : bottom ? pick(T.dirtBottomSingle, T.dirtBottomLeft, T.dirtBottomMid, T.dirtBottomRight)
-            : pick(T.dirtSingle, T.dirtLeft, T.dirtMid, T.dirtRight)
-          layer.putTileAt(tile, c, r)
-        }
-      }
-      const zone = this.add.zone((col + w / 2) * TILE_SIZE, (row + h / 2) * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE)
-      this.physics.add.existing(zone, true)
-      solids.push(zone)
-    }
-
-    // Sol : un morceau entre chaque trou ; bords visibles seulement au bord des trous.
-    const holes = level.objects
-      .filter((obj) => obj.type === 'hole')
-      .sort((a, b) => a.x - b.x)
-    const groundHeight = ROWS - GROUND_ROW
-    let start = 0
-    for (const hole of holes) {
-      if (hole.x > start) {
-        addTerrain(start, GROUND_ROW, hole.x - start, groundHeight, { left: start > 0, right: true, closedBottom: false })
-      }
-      start = hole.x + hole.w
-    }
-    if (start < level.width) {
-      addTerrain(start, GROUND_ROW, level.width - start, groundHeight, { left: start > 0, right: false, closedBottom: false })
-    }
-
-    // Blocs : piliers posés sur le sol.
-    for (const obj of level.objects) {
-      if (obj.type === 'block') {
-        addTerrain(obj.x, GROUND_ROW - obj.h, obj.w, obj.h, { left: true, right: true, closedBottom: true })
-      }
-    }
-
-    return solids
+      .setScrollFactor(parallaxX, layer.parallaxy ?? 1)
+      .setDepth(DEPTH.background)
   }
 
   /** Lance un shuriken dans la direction du regard, s'il en reste et si le délai est écoulé. */
@@ -346,9 +305,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Levier du pack : il bascule quand le joueur passe, et devient le point de reprise. */
-  private createCheckpoint(x: number) {
-    const lever = this.add.image(x, GROUND_TOP, KENNEY.tiles, TILES.leverOff).setOrigin(0.5, 1)
-    const zone = this.add.zone(x, GROUND_TOP - TILE_SIZE, TILE_SIZE, 2 * TILE_SIZE)
+  private createCheckpoint(x: number, bottom: number) {
+    const lever = this.add.image(x, bottom, KENNEY.tiles, TILES.leverOff).setOrigin(0.5, 1)
+    const zone = this.add.zone(x, bottom - TILE_SIZE, TILE_SIZE, 2 * TILE_SIZE)
     this.physics.add.existing(zone, true)
 
     let active = false
@@ -356,7 +315,7 @@ export class GameScene extends Phaser.Scene {
       if (active) return
       active = true
       lever.setFrame(TILES.leverOn)
-      this.player.setSpawn(x, SPAWN_Y)
+      this.player.setSpawn(x, bottom - SPAWN_HEIGHT)
     })
   }
 
@@ -370,6 +329,23 @@ export class GameScene extends Phaser.Scene {
       if (!heart.active || !this.player.heal()) return
       this.tweens.killTweensOf(heart)
       heart.destroy()
+    })
+  }
+
+  /** Énergie (petit shuriken qui flotte) : +1 shuriken. */
+  private createEnergy(x: number, y: number) {
+    const energy = this.add.image(x, y, TEX.shuriken)
+    this.physics.add.existing(energy, true)
+    this.tweens.add({ targets: energy, y: y - 2, angle: 360, duration: 900, repeat: -1 })
+
+    let collected = false
+    this.physics.add.overlap(this.player, energy, () => {
+      if (collected) return
+      collected = true
+      this.setAmmo(this.ammo + 1)
+      this.sfx.pickup()
+      this.tweens.killTweensOf(energy)
+      this.tweens.add({ targets: energy, y: energy.y - 10, alpha: 0, duration: 250, onComplete: () => energy.destroy() })
     })
   }
 
@@ -394,11 +370,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Drapeau du pack (mât + drapeau animé), 2 tuiles de haut. */
-  private createFinish(x: number) {
-    this.add.image(x, GROUND_TOP, KENNEY.tiles, TILES.flagPole).setOrigin(0.5, 1)
-    this.add.sprite(x, GROUND_TOP - TILE_SIZE, KENNEY.tiles, TILES.flag).setOrigin(0.5, 1).play(ANIMS.flagWave)
+  private createFinish(x: number, bottom: number) {
+    this.add.image(x, bottom, KENNEY.tiles, TILES.flagPole).setOrigin(0.5, 1)
+    this.add.sprite(x, bottom - TILE_SIZE, KENNEY.tiles, TILES.flag).setOrigin(0.5, 1).play(ANIMS.flagWave)
 
-    const zone = this.add.zone(x, GROUND_TOP - TILE_SIZE, TILE_SIZE, 2 * TILE_SIZE)
+    const zone = this.add.zone(x, bottom - TILE_SIZE, TILE_SIZE, 2 * TILE_SIZE)
     this.physics.add.existing(zone, true)
     this.physics.add.overlap(this.player, zone, () => this.finishLevel())
   }
