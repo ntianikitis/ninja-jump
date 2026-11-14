@@ -13,8 +13,8 @@ const HEIGHT = 56
 export class Player extends Phaser.GameObjects.Rectangle {
   declare body: Phaser.Physics.Arcade.Body
 
-  private readonly spawnX: number
-  private readonly spawnY: number
+  private spawnX: number
+  private spawnY: number
   private lastGroundedAt = -Infinity
   private jumpRequestedAt = -Infinity
 
@@ -55,6 +55,11 @@ export class Player extends Phaser.GameObjects.Rectangle {
       this.lastGroundedAt = -Infinity
       this.jumpRequestedAt = -Infinity
     }
+  }
+
+  setSpawn(x: number, y: number) {
+    this.spawnX = x
+    this.spawnY = y
   }
 
   /** Retour au départ, sans game over : le joueur clignote brièvement. */
