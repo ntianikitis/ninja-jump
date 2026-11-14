@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser'
-import { BG_TILE_SIZE, KENNEY, TILE_SIZE } from '../art/kenneyTiles'
+import { BG_TILE_SIZE, CHAR_SIZE, createKenneyAnimations, KENNEY, TILE_SIZE } from '../art/kenneyTiles'
 import { createPixelTextures } from '../art/pixelTextures'
 import { createPlayerAnimations, loadPlayerAssets } from '../characters/playerAssets'
 
@@ -16,10 +16,12 @@ export class BootScene extends Phaser.Scene {
       frameWidth: BG_TILE_SIZE,
       frameHeight: BG_TILE_SIZE,
     })
+    this.load.spritesheet(KENNEY.characters, 'assets/kenney/characters.png', { frameWidth: CHAR_SIZE, frameHeight: CHAR_SIZE })
   }
 
   create() {
     createPixelTextures(this)
+    createKenneyAnimations(this)
     createPlayerAnimations(this)
     this.scene.start('GameScene')
   }

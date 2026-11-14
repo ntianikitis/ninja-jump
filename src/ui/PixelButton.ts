@@ -18,10 +18,10 @@ export class PixelButton extends Phaser.GameObjects.Container {
     const height = 24
 
     // Ombre portée sous le bouton, puis contour, face et reflet.
-    const shadow = scene.add.rectangle(0, 2 * b, width, height, color(PALETTE.hudOutline))
-    const outline = scene.add.rectangle(0, 0, width, height, color(PALETTE.hudOutline))
-    this.face = scene.add.rectangle(0, 0, width - 2 * b, height - 2 * b, color(PALETTE.button))
-    const highlight = scene.add.rectangle(0, -height / 2 + 2 * b, width - 2 * b, 2 * b, color(PALETTE.buttonLight))
+    const shadow = scene.add.rectangle(0, 2 * b, width, height, color(PALETTE.outline))
+    const outline = scene.add.rectangle(0, 0, width, height, color(PALETTE.outline))
+    this.face = scene.add.rectangle(0, 0, width - 2 * b, height - 2 * b, color(PALETTE.grass))
+    const highlight = scene.add.rectangle(0, -height / 2 + 2 * b, width - 2 * b, 2 * b, color(PALETTE.grassLight))
     const label = scene.add.text(0, 0, text, { ...UI_TEXT_STYLE, fontSize: '12px' }).setOrigin(0.5)
     this.add([shadow, outline, this.face, highlight, label])
     this.movingParts = [outline, this.face, highlight, label].map((part) => ({ part, y: part.y }))
@@ -44,7 +44,7 @@ export class PixelButton extends Phaser.GameObjects.Container {
   }
 
   private setHover(hover: boolean) {
-    this.face.setFillStyle(color(hover ? PALETTE.buttonLight : PALETTE.button))
+    this.face.setFillStyle(color(hover ? PALETTE.grassLight : PALETTE.grass))
   }
 
   /** Enfoncé : le bouton descend sur son ombre et s'assombrit. */
@@ -52,6 +52,6 @@ export class PixelButton extends Phaser.GameObjects.Container {
     this.pressed = pressed
     const offset = pressed ? 2 * ART_SCALE : 0
     for (const { part, y } of this.movingParts) part.y = y + offset
-    this.face.setFillStyle(color(pressed ? PALETTE.buttonDark : PALETTE.button))
+    this.face.setFillStyle(color(pressed ? PALETTE.grassDark : PALETTE.grass))
   }
 }

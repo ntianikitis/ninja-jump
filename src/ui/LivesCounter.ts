@@ -2,7 +2,7 @@ import * as Phaser from 'phaser'
 import { ART_SCALE } from '../art/palette'
 import { TEX } from '../art/pixelTextures'
 
-const GAP = 1 // pixels d'art entre deux têtes
+const GAP = 2 // pixels d'art entre deux têtes
 
 /** Vies restantes : une petite tête de ninja par vie, fixe à l'écran. */
 export class LivesCounter extends Phaser.GameObjects.Container {

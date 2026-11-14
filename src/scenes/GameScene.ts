@@ -1,7 +1,5 @@
 import * as Phaser from 'phaser'
-import { ART_SCALE } from '../art/palette'
-import { BG, BG_TILE_SIZE, KENNEY, TILE_SIZE, TILES } from '../art/kenneyTiles'
-import { TEX } from '../art/pixelTextures'
+import { ANIMS, BG, BG_TILE_SIZE, KENNEY, TILE_SIZE, TILES } from '../art/kenneyTiles'
 import { LIFE_LOST_MS, PLAYER_MAX_HEALTH, PLAYER_START_LIVES } from '../config'
 import { InputController } from '../input/InputController'
 import { level1 } from '../levels/level1'
@@ -16,12 +14,12 @@ import type { GameOverData } from './GameOverScene'
 const ROWS = 10
 const GROUND_ROW = 8
 const GROUND_TOP = GROUND_ROW * TILE_SIZE
-const CHECKPOINT_COLOR = 0x9e9e9e
-const CHECKPOINT_ACTIVE_COLOR = 0xffd60a
 // Hauteur du centre du joueur à l'apparition (il tombe un peu jusqu'au sol).
 const SPAWN_Y = GROUND_TOP - 20
 const RESTART_DELAY_MS = 2000
 const LIVES_GAP = 4
+// Les cœurs du pack (18 px, dessin d'environ 14 px) se suivent tous les 14 px.
+const HEART_SPACING = 14
 // Parallaxe de l'horizon (nuages et arbres du pack).
 const HORIZON_SCROLL = 0.3
 const HORIZON_TEXTURE = 'bg-horizon'
@@ -38,7 +36,7 @@ export class GameScene extends Phaser.Scene {
   private livesCounter!: LivesCounter
   private finished = false
   private lives = PLAYER_START_LIVES
-  private stars = 0
+  private coins = 0
   /** Perte d'une vie en cours (animation, puis checkpoint ou écran « Oups ! »). */
   private losingLife = false
 
@@ -55,7 +53,7 @@ export class GameScene extends Phaser.Scene {
     this.enemies = []
     this.finished = false
     this.lives = PLAYER_START_LIVES
-    this.stars = 0
+    this.coins = 0
     this.losingLife = false
 
     // Pas de bord en bas : le joueur doit pouvoir tomber dans les trous.
@@ -70,15 +68,15 @@ export class GameScene extends Phaser.Scene {
 
     for (const obj of level.objects) {
       if (obj.type === 'enemy') {
-        this.enemies.push(new Enemy(this, colCenter(obj.x), GROUND_TOP - 7))
+        this.enemies.push(new Enemy(this, colCenter(obj.x), GROUND_TOP))
       } else if (obj.type === 'checkpoint') {
         this.createCheckpoint(colCenter(obj.x))
       } else if (obj.type === 'finish') {
         this.createFinish(colCenter(obj.x))
       } else if (obj.type === 'heart') {
         this.createHeart(colCenter(obj.x), rowCenter(obj.y ?? 1))
-      } else if (obj.type === 'star') {
-        this.createStar(colCenter(obj.x), rowCenter(obj.y ?? 1))
+      } else if (obj.type === 'coin') {
+        this.createCoin(colCenter(obj.x), rowCenter(obj.y ?? 1))
       }
     }
 
@@ -86,7 +84,14 @@ export class GameScene extends Phaser.Scene {
       this.player.hit((enemy as Enemy).x),
     )
 
-    const healthBar = new Hud(this).addBar({ icon: TEX.heart, fullTexture: TEX.barRed, max: PLAYER_MAX_HEALTH })
+    const healthBar = new Hud(this).addBar({
+      texture: KENNEY.tiles,
+      fullFrame: TILES.heartFull,
+      emptyFrame: TILES.heartEmpty,
+      lostFrame: TILES.heartHalf,
+      max: PLAYER_MAX_HEALTH,
+      spacing: HEART_SPACING,
+    })
     this.player.on(HEALTH_CHANGED, (health: number) => healthBar.setValue(health))
     this.player.on(HEALTH_DEPLETED, () => this.loseLife())
     this.livesCounter = new LivesCounter(this, healthBar.right + LIVES_GAP, healthBar.y, this.lives)
@@ -210,27 +215,29 @@ export class GameScene extends Phaser.Scene {
         // La pause gèle les tweens : on masque la dernière tête avant de figer la scène.
         this.livesCounter.setLives(0)
         this.scene.pause()
-        this.scene.launch('GameOverScene', { stars: this.stars } satisfies GameOverData)
+        this.scene.launch('GameOverScene', { coins: this.coins } satisfies GameOverData)
       }
     })
   }
 
+  /** Levier du pack : il bascule quand le joueur passe, et devient le point de reprise. */
   private createCheckpoint(x: number) {
-    const pole = this.add.rectangle(x, GROUND_TOP - 15, 4, 30, CHECKPOINT_COLOR)
-    this.physics.add.existing(pole, true)
+    const lever = this.add.image(x, GROUND_TOP, KENNEY.tiles, TILES.leverOff).setOrigin(0.5, 1)
+    const zone = this.add.zone(x, GROUND_TOP - TILE_SIZE, TILE_SIZE, 2 * TILE_SIZE)
+    this.physics.add.existing(zone, true)
 
     let active = false
-    this.physics.add.overlap(this.player, pole, () => {
+    this.physics.add.overlap(this.player, zone, () => {
       if (active) return
       active = true
-      pole.setFillStyle(CHECKPOINT_ACTIVE_COLOR)
+      lever.setFrame(TILES.leverOn)
       this.player.setSpawn(x, SPAWN_Y)
     })
   }
 
-  /** Cœur à ramasser : +1 vie ; il reste en place si la vie est pleine. */
+  /** Cœur à ramasser : +1 cœur ; il reste en place si la barre est pleine. */
   private createHeart(x: number, y: number) {
-    const heart = this.add.image(x, y, TEX.heartBig).setScale(ART_SCALE)
+    const heart = this.add.image(x, y, KENNEY.tiles, TILES.heartFull)
     this.physics.add.existing(heart, true)
     this.tweens.add({ targets: heart, y: y - 2, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
 
@@ -241,34 +248,32 @@ export class GameScene extends Phaser.Scene {
     })
   }
 
-  /** Étoile à collectionner : +1 au score, petit effet en disparaissant. */
-  private createStar(x: number, y: number) {
-    const star = this.add.image(x, y, TEX.star).setScale(ART_SCALE)
-    this.physics.add.existing(star, true)
-    this.tweens.add({ targets: star, y: y - 1, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
+  /** Pièce qui tourne : +1 au score, petit effet en disparaissant. */
+  private createCoin(x: number, y: number) {
+    const coin = this.add.sprite(x, y, KENNEY.tiles, TILES.coin).play(ANIMS.coinSpin)
+    this.physics.add.existing(coin, true)
 
     let collected = false
-    this.physics.add.overlap(this.player, star, () => {
+    this.physics.add.overlap(this.player, coin, () => {
       if (collected) return
       collected = true
-      this.stars++
-      this.tweens.killTweensOf(star)
+      this.coins++
       this.tweens.add({
-        targets: star,
-        y: star.y - 10,
+        targets: coin,
+        y: coin.y - 10,
         alpha: 0,
-        scale: ART_SCALE * 1.5,
         duration: 250,
-        onComplete: () => star.destroy(),
+        onComplete: () => coin.destroy(),
       })
     })
   }
 
+  /** Drapeau du pack (mât + drapeau animé), 2 tuiles de haut. */
   private createFinish(x: number) {
-    this.add.rectangle(x, GROUND_TOP - 27, 3, 54, 0xf1faee)
-    this.add.rectangle(x + 10, GROUND_TOP - 48, 17, 11, 0xffb703)
+    this.add.image(x, GROUND_TOP, KENNEY.tiles, TILES.flagPole).setOrigin(0.5, 1)
+    this.add.sprite(x, GROUND_TOP - TILE_SIZE, KENNEY.tiles, TILES.flag).setOrigin(0.5, 1).play(ANIMS.flagWave)
 
-    const zone = this.add.zone(x, GROUND_TOP - 27, 14, 54)
+    const zone = this.add.zone(x, GROUND_TOP - TILE_SIZE, TILE_SIZE, 2 * TILE_SIZE)
     this.physics.add.existing(zone, true)
     this.physics.add.overlap(this.player, zone, () => this.finishLevel())
   }

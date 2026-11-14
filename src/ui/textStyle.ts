@@ -6,6 +6,6 @@ export const UI_TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: 'system-ui, sans-serif',
   fontStyle: 'bold',
   color: '#ffffff',
-  stroke: PALETTE.hudOutline,
+  stroke: PALETTE.outline,
   strokeThickness: 2,
 }

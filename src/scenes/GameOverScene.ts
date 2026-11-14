@@ -1,11 +1,10 @@
 import * as Phaser from 'phaser'
-import { ART_SCALE } from '../art/palette'
-import { TEX } from '../art/pixelTextures'
+import { KENNEY, TILES } from '../art/kenneyTiles'
 import { PixelButton } from '../ui/PixelButton'
 import { PixelPanel } from '../ui/PixelPanel'
 import { UI_TEXT_STYLE } from '../ui/textStyle'
 
-export type GameOverData = { stars: number }
+export type GameOverData = { coins: number }
 
 const MESSAGES = ['Pas grave, on réessaie !', 'Tu y étais presque !', 'Le ninja est prêt à repartir !']
 // Les commandes ne répondent qu'après ce délai (évite un Espace de saut encore en cours).
@@ -32,11 +31,11 @@ export class GameOverScene extends Phaser.Scene {
     this.add.text(cx, cy - 16, Phaser.Utils.Array.GetRandom(MESSAGES), { ...UI_TEXT_STYLE, fontSize: '10px' }).setOrigin(0.5)
 
     const scoreText =
-      data.stars === 0
-        ? 'Les étoiles t’attendent !'
-        : `${data.stars} étoile${data.stars > 1 ? 's' : ''} ramassée${data.stars > 1 ? 's' : ''}`
+      data.coins === 0
+        ? 'Les pièces t’attendent !'
+        : `${data.coins} pièce${data.coins > 1 ? 's' : ''} ramassée${data.coins > 1 ? 's' : ''}`
     const score = this.add.text(cx + 5, cy + 2, scoreText, { ...UI_TEXT_STYLE, fontSize: '10px', color: '#fff6b0' }).setOrigin(0.5)
-    this.add.image(score.x - score.width / 2 - 7, cy + 2, TEX.star).setScale(ART_SCALE)
+    this.add.image(score.x - score.width / 2 - 9, cy + 2, KENNEY.tiles, TILES.coin)
 
     const button = new PixelButton(this, cx, cy + 32, 'Recommencer', () => this.restart())
     button.setAlpha(0.6)

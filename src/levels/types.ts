@@ -13,8 +13,8 @@ export type LevelObject =
   | { type: 'finish'; x: number }
   /** Cœur à ramasser (+1 cœur) ; y = rangée au-dessus du sol (1 par défaut). */
   | { type: 'heart'; x: number; y?: number }
-  /** Étoile à collectionner (score) ; y = rangée au-dessus du sol (1 par défaut). */
-  | { type: 'star'; x: number; y?: number }
+  /** Pièce à collectionner (score) ; y = rangée au-dessus du sol (1 par défaut). */
+  | { type: 'coin'; x: number; y?: number }
 
 export type LevelData = {
   /** Largeur du niveau, en tuiles. */
