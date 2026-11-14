@@ -11,3 +11,6 @@ export const JUMP_BUFFER_MS = 120
 export const ENEMY_SPEED = 80
 // Distance totale parcourue entre les deux demi-tours.
 export const ENEMY_PATROL_DISTANCE = 200
+
+// Temps d'arrêt (animation « hurt ») avant le retour au checkpoint après un ennemi.
+export const PLAYER_HURT_MS = 400

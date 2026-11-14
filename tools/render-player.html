@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rendu du joueur</title>
+    <style>
+      body { font-family: system-ui, sans-serif; background: #2b2d42; color: #edf2f4; margin: 16px; }
+      #frames { display: flex; flex-wrap: wrap; gap: 8px; }
+      figure { margin: 0; text-align: center; font-size: 12px; }
+      canvas { background: #87ceeb; display: block; }
+      #sheet { margin-top: 16px; max-width: 100%; background: repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 0 0 / 20px 20px; }
+    </style>
+  </head>
+  <body>
+    <h1>Rendu du joueur (character-r → public/assets/player/)</h1>
+    <p id="status">Chargement…</p>
+    <div id="frames"></div>
+    <canvas id="sheet"></canvas>
+    <script type="module" src="./render-player.ts"></script>
+  </body>
+</html>

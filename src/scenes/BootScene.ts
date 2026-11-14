@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser'
+import { createPlayerAnimations, loadPlayerAssets } from '../characters/playerAssets'
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -6,10 +7,11 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // Les assets du jeu seront chargés ici.
+    loadPlayerAssets(this)
   }
 
   create() {
+    createPlayerAnimations(this)
     this.scene.start('GameScene')
   }
 }

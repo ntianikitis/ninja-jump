@@ -1,0 +1,12 @@
+{
+  "scale": 0.5,
+  "hitbox": { "width": 48, "height": 120, "bottom": 152 },
+  "animations": {
+    "idle": { "frameRate": 12, "repeat": -1 },
+    "run": { "frameRate": 16, "repeat": -1 },
+    "jump": { "frameRate": 1, "repeat": 0 },
+    "fall": { "frameRate": 1, "repeat": 0 },
+    "hurt": { "frameRate": 24, "repeat": 0 },
+    "victory": { "frameRate": 12, "repeat": -1 }
+  }
+}

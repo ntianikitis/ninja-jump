@@ -52,7 +52,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    this.physics.add.overlap(this.player, this.enemies, () => this.player.respawn())
+    this.physics.add.overlap(this.player, this.enemies, () => this.player.hit())
 
     this.cameras.main.setBounds(0, 0, level.width, height)
     this.cameras.main.startFollow(this.player, true, 0.1, 0)
@@ -132,8 +132,7 @@ export class GameScene extends Phaser.Scene {
     if (this.finished) return
     this.finished = true
 
-    this.player.body.setVelocity(0, 0)
-    this.player.body.moves = false
+    this.player.celebrate()
 
     const { width, height } = this.scale
     const text = this.add
