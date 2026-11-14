@@ -14,3 +14,6 @@ export const ENEMY_PATROL_DISTANCE = 200
 
 // Temps d'arrêt (animation « hurt ») avant le retour au checkpoint après un ennemi.
 export const PLAYER_HURT_MS = 400
+
+// Contours de collision visibles (utile pour régler hitbox et niveau).
+export const DEBUG_PHYSICS = false

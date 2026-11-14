@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser'
+import { createPixelTextures } from '../art/pixelTextures'
 import { createPlayerAnimations, loadPlayerAssets } from '../characters/playerAssets'
 
 export class BootScene extends Phaser.Scene {
@@ -11,6 +12,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    createPixelTextures(this)
     createPlayerAnimations(this)
     this.scene.start('GameScene')
   }

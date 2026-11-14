@@ -25,6 +25,7 @@ Les images sont dessinées **tournées vers la droite** : le jeu les retourne po
 ## `character.json`
 
 - `scale` : facteur d'affichage des images (0.5 = images dessinées en double résolution).
+- `smooth` : `true` pour lisser les images (personnage non pixel art) ; à omettre pour un personnage en pixel art.
 - `hitbox` : zone de collision, en pixels de l'image (avant `scale`) ; centrée horizontalement,
   `bottom` = ligne des pieds mesurée depuis le haut de l'image.
 - `animations` : vitesse (`frameRate`, images par seconde) et boucle (`repeat` : -1 = en boucle, 0 = une fois).

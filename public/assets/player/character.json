@@ -1,5 +1,6 @@
 {
   "scale": 0.5,
+  "smooth": true,
   "hitbox": { "width": 48, "height": 120, "bottom": 152 },
   "animations": {
     "idle": { "frameRate": 12, "repeat": -1 },

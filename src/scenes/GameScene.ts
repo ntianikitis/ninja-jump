@@ -1,4 +1,6 @@
 import * as Phaser from 'phaser'
+import { ART_SCALE, PALETTE } from '../art/palette'
+import { GRASS_BLADES_HEIGHT, TEX } from '../art/pixelTextures'
 import { InputController } from '../input/InputController'
 import { level1 } from '../levels/level1'
 import type { LevelData } from '../levels/types'
@@ -7,8 +9,12 @@ import { Player } from '../objects/Player'
 
 const GROUND_TOP = 500
 const GROUND_HEIGHT = 40
-const GROUND_COLOR = 0x2d6a4f
-const BLOCK_COLOR = 0x8d5524
+const EDGE_COLOR = Phaser.Display.Color.HexStringToColor(PALETTE.outline).color
+// Nuages : facteur de défilement (parallaxe), espacement et hauteurs, par couche.
+const CLOUD_LAYERS = [
+  { scrollFactor: 0.2, spacing: 260, minY: 30, maxY: 170, alpha: 0.85 },
+  { scrollFactor: 0.4, spacing: 420, minY: 60, maxY: 220, alpha: 1 },
+]
 const CHECKPOINT_COLOR = 0x9e9e9e
 const CHECKPOINT_ACTIVE_COLOR = 0xffd60a
 // Hauteur du centre du joueur à l'apparition (il tombe un peu jusqu'au sol).
@@ -37,6 +43,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, level.width, height)
     this.physics.world.setBoundsCollision(true, true, true, false)
 
+    this.createBackground(level)
     const solids = this.createSolids(level)
 
     this.player = new Player(this, level.spawnX, SPAWN_Y)
@@ -73,13 +80,44 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Sol sur toute la largeur sauf aux trous, plus les blocs. */
+  /** Ciel en dégradé fixe et deux couches de nuages en parallaxe. */
+  private createBackground(level: LevelData) {
+    const { width, height } = this.scale
+
+    this.add
+      .tileSprite(0, 0, width / ART_SCALE, height / ART_SCALE, TEX.sky)
+      .setOrigin(0)
+      .setScale(ART_SCALE)
+      .setScrollFactor(0)
+      .setDepth(-100)
+
+    const maxScroll = level.width - width
+    CLOUD_LAYERS.forEach((layer, i) => {
+      // Une couche défile de maxScroll * scrollFactor : on la remplit sur cette largeur.
+      const span = width + maxScroll * layer.scrollFactor
+      let n = 0
+      for (let x = 40 + i * 120; x < span; x += layer.spacing) {
+        const y = layer.minY + ((n * 97 + i * 53) % (layer.maxY - layer.minY))
+        const offset = ((n * 61) % 80) - 40
+        this.add
+          .image(Math.round(x + offset), y, TEX.clouds[(n + i) % TEX.clouds.length])
+          .setScale(ART_SCALE)
+          .setScrollFactor(layer.scrollFactor, 0)
+          .setAlpha(layer.alpha)
+          .setDepth(-90 + i)
+        n++
+      }
+    })
+  }
+
+  /** Sol sur toute la largeur sauf aux trous, plus les blocs ; renvoie les zones de collision. */
   private createSolids(level: LevelData) {
-    const rects: Phaser.GameObjects.Rectangle[] = []
-    const addRect = (x: number, y: number, w: number, h: number, color: number) => {
-      const rect = this.add.rectangle(x + w / 2, y + h / 2, w, h, color)
-      this.physics.add.existing(rect, true)
-      rects.push(rect)
+    const solids: Phaser.GameObjects.Zone[] = []
+    const addSolid = (x: number, y: number, w: number, h: number) => {
+      const zone = this.add.zone(x + w / 2, y + h / 2, w, h)
+      this.physics.add.existing(zone, true)
+      solids.push(zone)
+      this.drawGround(x, y, w, h)
     }
 
     const holes = level.objects
@@ -89,21 +127,41 @@ export class GameScene extends Phaser.Scene {
     let groundStart = 0
     for (const hole of holes) {
       if (hole.x > groundStart) {
-        addRect(groundStart, GROUND_TOP, hole.x - groundStart, GROUND_HEIGHT, GROUND_COLOR)
+        addSolid(groundStart, GROUND_TOP, hole.x - groundStart, GROUND_HEIGHT)
       }
       groundStart = hole.x + hole.w
     }
     if (groundStart < level.width) {
-      addRect(groundStart, GROUND_TOP, level.width - groundStart, GROUND_HEIGHT, GROUND_COLOR)
+      addSolid(groundStart, GROUND_TOP, level.width - groundStart, GROUND_HEIGHT)
     }
 
     for (const obj of level.objects) {
       if (obj.type === 'block') {
-        addRect(obj.x, GROUND_TOP - obj.h, obj.w, obj.h, BLOCK_COLOR)
+        addSolid(obj.x, GROUND_TOP - obj.h, obj.w, obj.h)
       }
     }
 
-    return rects
+    return solids
+  }
+
+  /** Terre en briques + herbe sur le dessus (brins décoratifs au-dessus de y) + bords sombres. */
+  private drawGround(x: number, y: number, w: number, h: number) {
+    // Motif aligné sur le monde pour que les morceaux voisins se raccordent.
+    this.add
+      .tileSprite(x, y, w / ART_SCALE, h / ART_SCALE, TEX.dirt)
+      .setOrigin(0)
+      .setScale(ART_SCALE)
+      .setTilePosition(x / ART_SCALE, y / ART_SCALE)
+
+    const grassTop = y - GRASS_BLADES_HEIGHT * ART_SCALE
+    this.add
+      .tileSprite(x, grassTop, w / ART_SCALE, this.textures.getFrame(TEX.grass).height, TEX.grass)
+      .setOrigin(0)
+      .setScale(ART_SCALE)
+      .setTilePosition(x / ART_SCALE, 0)
+
+    this.add.rectangle(x, y, ART_SCALE, h, EDGE_COLOR).setOrigin(0)
+    this.add.rectangle(x + w - ART_SCALE, y, ART_SCALE, h, EDGE_COLOR).setOrigin(0)
   }
 
   private createCheckpoint(x: number) {

@@ -2,7 +2,7 @@ import './style.css'
 import * as Phaser from 'phaser'
 import { BootScene } from './scenes/BootScene'
 import { GameScene } from './scenes/GameScene'
-import { GRAVITY } from './config'
+import { DEBUG_PHYSICS, GRAVITY } from './config'
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -10,6 +10,8 @@ const config: Phaser.Types.Core.GameConfig = {
   width: 960,
   height: 540,
   backgroundColor: '#87ceeb',
+  // Pixels nets : pas de lissage, positions arrondies au pixel.
+  pixelArt: true,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -18,7 +20,7 @@ const config: Phaser.Types.Core.GameConfig = {
     default: 'arcade',
     arcade: {
       gravity: { x: 0, y: GRAVITY },
-      debug: true,
+      debug: DEBUG_PHYSICS,
     },
   },
   scene: [BootScene, GameScene],

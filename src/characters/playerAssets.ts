@@ -9,6 +9,8 @@ export type PlayerAnim = (typeof PLAYER_ANIMS)[number]
 
 export type CharacterManifest = {
   scale: number
+  /** true = images lissées (personnage non pixel art) ; false ou absent = pixels nets. */
+  smooth?: boolean
   /** En pixels de l'image ; centrée horizontalement, bottom = ligne des pieds. */
   hitbox: { width: number; height: number; bottom: number }
   animations: Record<PlayerAnim, { frameRate: number; repeat: number }>
@@ -27,8 +29,10 @@ export function getCharacterManifest(scene: Phaser.Scene): CharacterManifest {
 
 /** Crée une animation par préfixe d'image de l'atlas (idle/00, idle/01…). */
 export function createPlayerAnimations(scene: Phaser.Scene) {
-  const { animations } = getCharacterManifest(scene)
-  const frameNames = scene.textures.get(PLAYER_TEXTURE).getFrameNames()
+  const { animations, smooth } = getCharacterManifest(scene)
+  const texture = scene.textures.get(PLAYER_TEXTURE)
+  if (smooth) texture.setFilter(Phaser.Textures.FilterMode.LINEAR)
+  const frameNames = texture.getFrameNames()
 
   for (const anim of PLAYER_ANIMS) {
     const frames = frameNames
