@@ -1,6 +1,7 @@
 import './style.css'
 import * as Phaser from 'phaser'
 import { BootScene } from './scenes/BootScene'
+import { GameOverScene } from './scenes/GameOverScene'
 import { GameScene } from './scenes/GameScene'
 import { DEBUG_PHYSICS, GRAVITY } from './config'
 
@@ -23,7 +24,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: DEBUG_PHYSICS,
     },
   },
-  scene: [BootScene, GameScene],
+  scene: [BootScene, GameScene, GameOverScene],
 }
 
 new Phaser.Game(config)

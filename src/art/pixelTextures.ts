@@ -11,6 +11,8 @@ export const TEX = {
   barEmpty: 'px-bar-empty',
   barFlash: 'px-bar-flash',
   barRed: 'px-bar-red',
+  star: 'px-star',
+  ninjaHead: 'px-ninja-head',
 } as const
 
 /** Hauteur (pixels d'art) des brins d'herbe au-dessus de la ligne du sol. */
@@ -42,6 +44,15 @@ export function createPixelTextures(scene: Phaser.Scene) {
   const heartColors = { o: PALETTE.hudOutline, l: PALETTE.heartLight, r: PALETTE.heart, d: PALETTE.heartDark }
   drawPattern(scene, TEX.heart, HEART, heartColors)
   drawPattern(scene, TEX.heartBig, HEART_BIG, heartColors)
+  drawPattern(scene, TEX.star, STAR, { o: PALETTE.hudOutline, l: PALETTE.starLight, y: PALETTE.star, d: PALETTE.starDark })
+  drawPattern(scene, TEX.ninjaHead, NINJA_HEAD, {
+    o: PALETTE.hudOutline,
+    h: PALETTE.hood,
+    k: PALETTE.hoodDark,
+    r: PALETTE.heart,
+    s: PALETTE.skin,
+    e: PALETTE.hudOutline,
+  })
   createBarSegmentTexture(scene, TEX.barEmpty, PALETTE.barEmptyLight, PALETTE.barEmpty, PALETTE.barEmpty)
   createBarSegmentTexture(scene, TEX.barFlash, PALETTE.flash, PALETTE.flash, PALETTE.flash)
   createBarSegmentTexture(scene, TEX.barRed, PALETTE.heartLight, PALETTE.heart, PALETTE.heartDark)
@@ -93,6 +104,29 @@ const HEART_BIG = [
   '....orrdo....',
   '.....odo.....',
   '......o......',
+]
+
+const STAR = [
+  '....o....',
+  '...oyo...',
+  'oooolyooo',
+  'oyyyllyyo',
+  '.oyyyyyo.',
+  '..oyyyo..',
+  '.oyydyyo.',
+  '.oydodyo.',
+  '.oo...oo.',
+]
+// Tête de ninja : h = cagoule, k = ombre, r = bandeau, s = peau, e = yeux.
+const NINJA_HEAD = [
+  '.oooooo.',
+  'ohhhhhko',
+  'orrrrrro',
+  'ohesseko',
+  'ohssssko',
+  'ohhhhhko',
+  'okkkkkko',
+  '.oooooo.',
 ]
 
 function drawPattern(scene: Phaser.Scene, key: string, rows: string[], colors: Record<string, string>) {

@@ -12,7 +12,12 @@ export const ENEMY_SPEED = 80
 // Distance totale parcourue entre les deux demi-tours.
 export const ENEMY_PATROL_DISTANCE = 200
 
-// Vie : nombre de segments de la barre.
+// Vies au début du niveau (têtes de ninja en haut à gauche).
+export const PLAYER_START_LIVES = 3
+// Durée de l'animation de perte d'une vie (la tête clignote puis disparaît).
+export const LIFE_LOST_MS = 900
+
+// Cœurs : nombre de segments de la barre.
 export const PLAYER_MAX_HEALTH = 5
 // Invincibilité (clignotement) après avoir été touché par un ennemi.
 export const PLAYER_INVINCIBLE_MS = 1500

@@ -18,8 +18,10 @@ import {
 } from '../config'
 import type { InputController } from '../input/InputController'
 
-/** Émis avec la nouvelle valeur de vie à chaque changement. */
+/** Émis avec le nouveau nombre de cœurs à chaque changement. */
 export const HEALTH_CHANGED = 'health-changed'
+/** Émis quand le dernier cœur est perdu : la scène retire alors une vie. */
+export const HEALTH_DEPLETED = 'health-depleted'
 
 const RESPAWN_BLINK_MS = 600
 
@@ -34,7 +36,7 @@ export class Player extends Phaser.GameObjects.Sprite {
   private jumpRequestedAt = -Infinity
   private knockbackUntil = -Infinity
   private invincibleUntil = -Infinity
-  /** Figé : retour au checkpoint en cours, ou victoire. */
+  /** Figé : perte d'une vie en cours, ou victoire. */
   private frozen = false
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -97,7 +99,7 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.spawnY = y
   }
 
-  /** Touché par un ennemi situé en sourceX : −1 vie, recul et invincibilité. */
+  /** Touché par un ennemi situé en sourceX : −1 cœur, recul et invincibilité. */
   hit(sourceX: number) {
     const now = this.scene.time.now
     if (this.frozen || now < this.invincibleUntil) return
@@ -106,14 +108,8 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.playAnim('hurt')
 
     if (this.health === 0) {
-      // Barre vide : courte pause, puis retour au checkpoint avec la vie pleine.
-      this.frozen = true
       this.freeze()
-      this.scene.time.delayedCall(KNOCKBACK_MS, () => {
-        this.frozen = false
-        this.body.moves = true
-        this.respawn()
-      })
+      this.emit(HEALTH_DEPLETED)
       return
     }
 
@@ -124,13 +120,7 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.blink(PLAYER_INVINCIBLE_MS)
   }
 
-  /** Chute dans un trou : −1 vie et retour au checkpoint. */
-  fall() {
-    this.setHealth(this.health - 1)
-    this.respawn()
-  }
-
-  /** +1 vie ; renvoie false si la vie est déjà pleine (le cœur n'est pas consommé). */
+  /** +1 cœur ; renvoie false si la barre est déjà pleine (le cœur n'est pas consommé). */
   heal() {
     if (this.health >= PLAYER_MAX_HEALTH) return false
     this.setHealth(this.health + 1)
@@ -139,14 +129,22 @@ export class Player extends Phaser.GameObjects.Sprite {
 
   /** Arrivée atteinte : le joueur s'arrête et fête sa victoire. */
   celebrate() {
-    this.frozen = true
     this.freeze()
     this.playAnim('victory')
   }
 
-  /** Retour au checkpoint, sans game over ; la vie est remise à fond si elle était vide. */
+  /** Immobilise le joueur (perte d'une vie, victoire) jusqu'au prochain respawn(). */
+  freeze() {
+    this.frozen = true
+    this.body.stop()
+    this.body.moves = false
+  }
+
+  /** Retour au dernier checkpoint avec tous les cœurs. */
   respawn() {
-    if (this.health === 0) this.setHealth(PLAYER_MAX_HEALTH)
+    this.frozen = false
+    this.body.moves = true
+    this.setHealth(PLAYER_MAX_HEALTH)
 
     this.body.reset(this.spawnX, this.spawnY)
     this.lastGroundedAt = -Infinity
@@ -187,11 +185,6 @@ export class Player extends Phaser.GameObjects.Sprite {
     } else {
       this.playAnim(velocity.x !== 0 ? 'run' : 'idle')
     }
-  }
-
-  private freeze() {
-    this.body.stop()
-    this.body.moves = false
   }
 
   private playAnim(anim: PlayerAnim) {

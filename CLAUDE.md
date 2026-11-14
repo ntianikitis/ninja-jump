@@ -16,7 +16,7 @@ Jeu de plateforme 2D pour un enfant : un petit ninja original saute par-dessus d
 
 ## Règles
 
-- **Jeu indulgent** : pas de game over frustrant, checkpoints fréquents.
+- **Jeu indulgent** : game over doux avec 3 vies, ton toujours encourageant, checkpoints fréquents.
 - **Clavier ET tactile** : toute fonctionnalité doit marcher au clavier et au tactile, sur desktop comme sur smartphone, depuis la même URL.
 - **Réglages centralisés** : les réglages de gameplay (gravité, vitesse, saut…) vivent dans `src/config.ts`, jamais en dur dans les scènes.
 - **Petites étapes** : on avance une petite étape à la fois ; proposer un plan avant tout changement important.

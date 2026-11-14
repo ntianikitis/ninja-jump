@@ -1,13 +1,15 @@
 import * as Phaser from 'phaser'
 import { ART_SCALE, PALETTE } from '../art/palette'
 import { GRASS_BLADES_HEIGHT, TEX } from '../art/pixelTextures'
-import { PLAYER_MAX_HEALTH } from '../config'
+import { LIFE_LOST_MS, PLAYER_MAX_HEALTH, PLAYER_START_LIVES } from '../config'
 import { InputController } from '../input/InputController'
 import { level1 } from '../levels/level1'
 import type { LevelData } from '../levels/types'
 import { Enemy } from '../objects/Enemy'
-import { HEALTH_CHANGED, Player } from '../objects/Player'
+import { HEALTH_CHANGED, HEALTH_DEPLETED, Player } from '../objects/Player'
 import { Hud } from '../ui/Hud'
+import { LivesCounter } from '../ui/LivesCounter'
+import type { GameOverData } from './GameOverScene'
 
 const GROUND_TOP = 500
 const GROUND_HEIGHT = 40
@@ -22,13 +24,19 @@ const CHECKPOINT_ACTIVE_COLOR = 0xffd60a
 // Hauteur du centre du joueur à l'apparition (il tombe un peu jusqu'au sol).
 const SPAWN_Y = GROUND_TOP - 60
 const RESTART_DELAY_MS = 2000
-const HEART_DEFAULT_HEIGHT = 40
+const PICKUP_DEFAULT_HEIGHT = 40
+const LIVES_GAP = 12
 
 export class GameScene extends Phaser.Scene {
   private inputController!: InputController
   private player!: Player
   private enemies: Enemy[] = []
+  private livesCounter!: LivesCounter
   private finished = false
+  private lives = PLAYER_START_LIVES
+  private stars = 0
+  /** Perte d'une vie en cours (animation, puis checkpoint ou écran « Oups ! »). */
+  private losingLife = false
 
   constructor() {
     super('GameScene')
@@ -41,6 +49,9 @@ export class GameScene extends Phaser.Scene {
     // La scène est réutilisée par restart() : on remet son état à zéro.
     this.enemies = []
     this.finished = false
+    this.lives = PLAYER_START_LIVES
+    this.stars = 0
+    this.losingLife = false
 
     // Pas de bord en bas : le joueur doit pouvoir tomber dans les trous.
     this.physics.world.setBounds(0, 0, level.width, height)
@@ -60,7 +71,9 @@ export class GameScene extends Phaser.Scene {
       } else if (obj.type === 'finish') {
         this.createFinish(obj.x)
       } else if (obj.type === 'heart') {
-        this.createHeart(obj.x, GROUND_TOP - (obj.y ?? HEART_DEFAULT_HEIGHT))
+        this.createHeart(obj.x, GROUND_TOP - (obj.y ?? PICKUP_DEFAULT_HEIGHT))
+      } else if (obj.type === 'star') {
+        this.createStar(obj.x, GROUND_TOP - (obj.y ?? PICKUP_DEFAULT_HEIGHT))
       }
     }
 
@@ -70,6 +83,8 @@ export class GameScene extends Phaser.Scene {
 
     const healthBar = new Hud(this).addBar({ icon: TEX.heart, fullTexture: TEX.barRed, max: PLAYER_MAX_HEALTH })
     this.player.on(HEALTH_CHANGED, (health: number) => healthBar.setValue(health))
+    this.player.on(HEALTH_DEPLETED, () => this.loseLife())
+    this.livesCounter = new LivesCounter(this, healthBar.right + LIVES_GAP, healthBar.y, this.lives)
 
     this.cameras.main.setBounds(0, 0, level.width, height)
     this.cameras.main.startFollow(this.player, true, 0.1, 0)
@@ -81,12 +96,14 @@ export class GameScene extends Phaser.Scene {
     this.inputController.update()
     for (const enemy of this.enemies) enemy.update()
 
-    if (this.finished) return
+    if (this.finished || this.losingLife) return
 
     this.player.update(this.inputController)
 
+    // Tomber dans un trou fait perdre une vie directement.
     if (this.player.y > this.scale.height + 100) {
-      this.player.fall()
+      this.player.freeze()
+      this.loseLife()
     }
   }
 
@@ -174,6 +191,26 @@ export class GameScene extends Phaser.Scene {
     this.add.rectangle(x + w - ART_SCALE, y, ART_SCALE, h, EDGE_COLOR).setOrigin(0)
   }
 
+  /** −1 vie : la tête clignote, puis retour au checkpoint avec tous les cœurs, ou écran « Oups ! ». */
+  private loseLife() {
+    if (this.losingLife || this.finished) return
+    this.losingLife = true
+    this.lives--
+    this.livesCounter.loseLife(LIFE_LOST_MS)
+
+    this.time.delayedCall(LIFE_LOST_MS, () => {
+      if (this.lives > 0) {
+        this.losingLife = false
+        this.player.respawn()
+      } else {
+        // La pause gèle les tweens : on masque la dernière tête avant de figer la scène.
+        this.livesCounter.setLives(0)
+        this.scene.pause()
+        this.scene.launch('GameOverScene', { stars: this.stars } satisfies GameOverData)
+      }
+    })
+  }
+
   private createCheckpoint(x: number) {
     const pole = this.add.rectangle(x, GROUND_TOP - 45, 10, 90, CHECKPOINT_COLOR)
     this.physics.add.existing(pole, true)
@@ -197,6 +234,29 @@ export class GameScene extends Phaser.Scene {
       if (!heart.active || !this.player.heal()) return
       this.tweens.killTweensOf(heart)
       heart.destroy()
+    })
+  }
+
+  /** Étoile à collectionner : +1 au score, petit effet en disparaissant. */
+  private createStar(x: number, y: number) {
+    const star = this.add.image(x, y, TEX.star).setScale(ART_SCALE)
+    this.physics.add.existing(star, true)
+    this.tweens.add({ targets: star, y: y - 4, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
+
+    let collected = false
+    this.physics.add.overlap(this.player, star, () => {
+      if (collected) return
+      collected = true
+      this.stars++
+      this.tweens.killTweensOf(star)
+      this.tweens.add({
+        targets: star,
+        y: star.y - 30,
+        alpha: 0,
+        scale: ART_SCALE * 1.5,
+        duration: 250,
+        onComplete: () => star.destroy(),
+      })
     })
   }
 

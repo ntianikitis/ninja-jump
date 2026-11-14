@@ -37,6 +37,11 @@ export class StatBar extends Phaser.GameObjects.Container {
     this.setValue(options.value ?? options.max)
   }
 
+  /** Bord droit de la barre, pour placer un élément à côté. */
+  get right() {
+    return this.x + this.segmentsX + (this.segments.length * (BAR_SEGMENT_WIDTH - 1) + 1) * ART_SCALE
+  }
+
   setMax(max: number) {
     for (const segment of this.segments) segment.destroy()
     // Les segments se chevauchent d'1 pixel d'art pour partager leur contour.
