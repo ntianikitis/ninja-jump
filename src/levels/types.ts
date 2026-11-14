@@ -10,6 +10,8 @@ export type LevelObject =
   | { type: 'checkpoint'; x: number }
   /** Drapeau d'arrivée. */
   | { type: 'finish'; x: number }
+  /** Cœur à ramasser (+1 vie) ; y = hauteur de son centre au-dessus du sol (40 par défaut). */
+  | { type: 'heart'; x: number; y?: number }
 
 export type LevelData = {
   width: number

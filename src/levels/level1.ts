@@ -16,16 +16,19 @@ export const level1: LevelData = {
 
     // Écran 3 : premier ennemi seul, puis checkpoint au milieu du niveau.
     { type: 'enemy', x: 2250 },
+    { type: 'heart', x: 2500 },
     { type: 'checkpoint', x: 2700 },
 
     // Écran 4 : escalier, trou plus large, puis un ennemi (avec de la place pour atterrir).
     { type: 'block', x: 2950, w: 50, h: 40 },
     { type: 'block', x: 3000, w: 50, h: 80 },
     { type: 'block', x: 3050, w: 50, h: 110 },
+    { type: 'heart', x: 3075, y: 170 }, // récompense en haut de l'escalier
     { type: 'hole', x: 3250, w: 130 },
     { type: 'enemy', x: 3700 },
 
     // Écrans 5 et 6 : deux ennemis séparés par le plus grand trou, puis l'arrivée.
+    { type: 'heart', x: 3880 },
     { type: 'enemy', x: 4100 },
     { type: 'hole', x: 4350, w: 150 },
     { type: 'enemy', x: 4750 },

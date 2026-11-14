@@ -12,8 +12,14 @@ export const ENEMY_SPEED = 80
 // Distance totale parcourue entre les deux demi-tours.
 export const ENEMY_PATROL_DISTANCE = 200
 
-// Temps d'arrêt (animation « hurt ») avant le retour au checkpoint après un ennemi.
-export const PLAYER_HURT_MS = 400
+// Vie : nombre de segments de la barre.
+export const PLAYER_MAX_HEALTH = 5
+// Invincibilité (clignotement) après avoir été touché par un ennemi.
+export const PLAYER_INVINCIBLE_MS = 1500
+// Recul quand un ennemi touche le joueur (vitesses), et durée sans contrôle.
+export const KNOCKBACK_X = 220
+export const KNOCKBACK_Y = -320
+export const KNOCKBACK_MS = 300
 
 // Contours de collision visibles (utile pour régler hitbox et niveau).
 export const DEBUG_PHYSICS = false

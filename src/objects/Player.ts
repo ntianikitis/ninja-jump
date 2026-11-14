@@ -9,20 +9,33 @@ import {
   COYOTE_TIME_MS,
   JUMP_BUFFER_MS,
   JUMP_VELOCITY,
-  PLAYER_HURT_MS,
+  KNOCKBACK_MS,
+  KNOCKBACK_X,
+  KNOCKBACK_Y,
+  PLAYER_INVINCIBLE_MS,
+  PLAYER_MAX_HEALTH,
   PLAYER_SPEED,
 } from '../config'
 import type { InputController } from '../input/InputController'
 
+/** Émis avec la nouvelle valeur de vie à chaque changement. */
+export const HEALTH_CHANGED = 'health-changed'
+
+const RESPAWN_BLINK_MS = 600
+
 export class Player extends Phaser.GameObjects.Sprite {
   declare body: Phaser.Physics.Arcade.Body
+
+  health = PLAYER_MAX_HEALTH
 
   private spawnX: number
   private spawnY: number
   private lastGroundedAt = -Infinity
   private jumpRequestedAt = -Infinity
-  private hurt = false
-  private celebrating = false
+  private knockbackUntil = -Infinity
+  private invincibleUntil = -Infinity
+  /** Figé : retour au checkpoint en cours, ou victoire. */
+  private frozen = false
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, PLAYER_TEXTURE)
@@ -43,10 +56,13 @@ export class Player extends Phaser.GameObjects.Sprite {
   }
 
   update(input: InputController) {
-    if (this.hurt || this.celebrating) return
+    if (this.frozen) return
 
     const body = this.body
     const now = this.scene.time.now
+
+    // Pendant le recul, le joueur ne contrôle pas le personnage.
+    if (now < this.knockbackUntil) return
 
     if (input.left === input.right) {
       body.setVelocityX(0)
@@ -81,34 +97,72 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.spawnY = y
   }
 
-  /** Touché par un ennemi : courte animation, puis retour au checkpoint. */
-  hit() {
-    if (this.hurt || this.celebrating) return
-    this.hurt = true
-    this.freeze()
+  /** Touché par un ennemi situé en sourceX : −1 vie, recul et invincibilité. */
+  hit(sourceX: number) {
+    const now = this.scene.time.now
+    if (this.frozen || now < this.invincibleUntil) return
+
+    this.setHealth(this.health - 1)
     this.playAnim('hurt')
 
-    this.scene.time.delayedCall(PLAYER_HURT_MS, () => {
-      this.hurt = false
-      this.body.moves = true
-      this.respawn()
-    })
+    if (this.health === 0) {
+      // Barre vide : courte pause, puis retour au checkpoint avec la vie pleine.
+      this.frozen = true
+      this.freeze()
+      this.scene.time.delayedCall(KNOCKBACK_MS, () => {
+        this.frozen = false
+        this.body.moves = true
+        this.respawn()
+      })
+      return
+    }
+
+    const direction = this.x < sourceX ? -1 : 1
+    this.body.setVelocity(direction * KNOCKBACK_X, KNOCKBACK_Y)
+    this.knockbackUntil = now + KNOCKBACK_MS
+    this.invincibleUntil = now + PLAYER_INVINCIBLE_MS
+    this.blink(PLAYER_INVINCIBLE_MS)
+  }
+
+  /** Chute dans un trou : −1 vie et retour au checkpoint. */
+  fall() {
+    this.setHealth(this.health - 1)
+    this.respawn()
+  }
+
+  /** +1 vie ; renvoie false si la vie est déjà pleine (le cœur n'est pas consommé). */
+  heal() {
+    if (this.health >= PLAYER_MAX_HEALTH) return false
+    this.setHealth(this.health + 1)
+    return true
   }
 
   /** Arrivée atteinte : le joueur s'arrête et fête sa victoire. */
   celebrate() {
-    this.celebrating = true
+    this.frozen = true
     this.freeze()
     this.playAnim('victory')
   }
 
-  /** Retour au départ, sans game over : le joueur clignote brièvement. */
+  /** Retour au checkpoint, sans game over ; la vie est remise à fond si elle était vide. */
   respawn() {
+    if (this.health === 0) this.setHealth(PLAYER_MAX_HEALTH)
+
     this.body.reset(this.spawnX, this.spawnY)
     this.lastGroundedAt = -Infinity
     this.jumpRequestedAt = -Infinity
+    this.knockbackUntil = -Infinity
+    this.invincibleUntil = this.scene.time.now + RESPAWN_BLINK_MS
     this.playAnim('idle')
+    this.blink(RESPAWN_BLINK_MS)
+  }
 
+  private setHealth(value: number) {
+    this.health = Phaser.Math.Clamp(value, 0, PLAYER_MAX_HEALTH)
+    this.emit(HEALTH_CHANGED, this.health)
+  }
+
+  private blink(duration: number) {
     this.scene.tweens.killTweensOf(this)
     this.setAlpha(1)
     this.scene.tweens.add({
@@ -116,7 +170,8 @@ export class Player extends Phaser.GameObjects.Sprite {
       alpha: 0.2,
       duration: 100,
       yoyo: true,
-      repeat: 2,
+      repeat: Math.max(0, Math.round(duration / 200) - 1),
+      onComplete: () => this.setAlpha(1),
     })
   }
 

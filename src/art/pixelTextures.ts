@@ -6,6 +6,11 @@ export const TEX = {
   dirt: 'px-dirt',
   grass: 'px-grass',
   clouds: ['px-cloud-0', 'px-cloud-1', 'px-cloud-2'],
+  heart: 'px-heart',
+  heartBig: 'px-heart-big',
+  barEmpty: 'px-bar-empty',
+  barFlash: 'px-bar-flash',
+  barRed: 'px-bar-red',
 } as const
 
 /** Hauteur (pixels d'art) des brins d'herbe au-dessus de la ligne du sol. */
@@ -32,6 +37,71 @@ export function createPixelTextures(scene: Phaser.Scene) {
     const width = Math.max(...bumps.map(([x, r]) => x + r)) + 2
     const height = Math.ceil(Math.max(...bumps.map(([, r]) => r * 1.5))) + 3
     draw(scene, TEX.clouds[i], width, height, (ctx) => drawCloud(ctx, width, height, bumps))
+  })
+
+  const heartColors = { o: PALETTE.hudOutline, l: PALETTE.heartLight, r: PALETTE.heart, d: PALETTE.heartDark }
+  drawPattern(scene, TEX.heart, HEART, heartColors)
+  drawPattern(scene, TEX.heartBig, HEART_BIG, heartColors)
+  createBarSegmentTexture(scene, TEX.barEmpty, PALETTE.barEmptyLight, PALETTE.barEmpty, PALETTE.barEmpty)
+  createBarSegmentTexture(scene, TEX.barFlash, PALETTE.flash, PALETTE.flash, PALETTE.flash)
+  createBarSegmentTexture(scene, TEX.barRed, PALETTE.heartLight, PALETTE.heart, PALETTE.heartDark)
+}
+
+/** Largeur d'un segment de barre (pixels d'art) ; les segments voisins partagent leur contour. */
+export const BAR_SEGMENT_WIDTH = 9
+
+/**
+ * Segment de barre (contour sombre, coins coupés) : reflet en haut, couleur, ombre en bas.
+ * Exportée pour créer d'autres barres (ex. énergie en bleu).
+ */
+export function createBarSegmentTexture(scene: Phaser.Scene, key: string, light: string, base: string, dark: string) {
+  const w = BAR_SEGMENT_WIDTH
+  const h = 7
+  draw(scene, key, w, h, (ctx) => {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const corner = (x === 0 || x === w - 1) && (y === 0 || y === h - 1)
+        if (corner) continue
+        const border = x === 0 || x === w - 1 || y === 0 || y === h - 1
+        px(ctx, x, y, border ? PALETTE.hudOutline : y === 1 ? light : y === h - 2 ? dark : base)
+      }
+    }
+  })
+}
+
+// Motifs : o = contour, l = reflet, r = couleur, d = ombre, . = transparent.
+const HEART = [
+  '.oo...oo.',
+  'olro.orro',
+  'olrrorrro',
+  'orrrrrrdo',
+  '.orrrrdo.',
+  '..orrdo..',
+  '...odo...',
+  '....o....',
+]
+const HEART_BIG = [
+  '..ooo...ooo..',
+  '.ollro.orrro.',
+  'olllrrorrrrro',
+  'ollrrrrrrrrro',
+  'orrrrrrrrrrdo',
+  'orrrrrrrrrrdo',
+  '.orrrrrrrrdo.',
+  '..orrrrrrdo..',
+  '...orrrrdo...',
+  '....orrdo....',
+  '.....odo.....',
+  '......o......',
+]
+
+function drawPattern(scene: Phaser.Scene, key: string, rows: string[], colors: Record<string, string>) {
+  draw(scene, key, rows[0].length, rows.length, (ctx) => {
+    rows.forEach((row, y) => {
+      ;[...row].forEach((char, x) => {
+        if (colors[char]) px(ctx, x, y, colors[char])
+      })
+    })
   })
 }
 

@@ -1,11 +1,13 @@
 import * as Phaser from 'phaser'
 import { ART_SCALE, PALETTE } from '../art/palette'
 import { GRASS_BLADES_HEIGHT, TEX } from '../art/pixelTextures'
+import { PLAYER_MAX_HEALTH } from '../config'
 import { InputController } from '../input/InputController'
 import { level1 } from '../levels/level1'
 import type { LevelData } from '../levels/types'
 import { Enemy } from '../objects/Enemy'
-import { Player } from '../objects/Player'
+import { HEALTH_CHANGED, Player } from '../objects/Player'
+import { Hud } from '../ui/Hud'
 
 const GROUND_TOP = 500
 const GROUND_HEIGHT = 40
@@ -20,6 +22,7 @@ const CHECKPOINT_ACTIVE_COLOR = 0xffd60a
 // Hauteur du centre du joueur à l'apparition (il tombe un peu jusqu'au sol).
 const SPAWN_Y = GROUND_TOP - 60
 const RESTART_DELAY_MS = 2000
+const HEART_DEFAULT_HEIGHT = 40
 
 export class GameScene extends Phaser.Scene {
   private inputController!: InputController
@@ -56,10 +59,17 @@ export class GameScene extends Phaser.Scene {
         this.createCheckpoint(obj.x)
       } else if (obj.type === 'finish') {
         this.createFinish(obj.x)
+      } else if (obj.type === 'heart') {
+        this.createHeart(obj.x, GROUND_TOP - (obj.y ?? HEART_DEFAULT_HEIGHT))
       }
     }
 
-    this.physics.add.overlap(this.player, this.enemies, () => this.player.hit())
+    this.physics.add.overlap(this.player, this.enemies, (_player, enemy) =>
+      this.player.hit((enemy as Enemy).x),
+    )
+
+    const healthBar = new Hud(this).addBar({ icon: TEX.heart, fullTexture: TEX.barRed, max: PLAYER_MAX_HEALTH })
+    this.player.on(HEALTH_CHANGED, (health: number) => healthBar.setValue(health))
 
     this.cameras.main.setBounds(0, 0, level.width, height)
     this.cameras.main.startFollow(this.player, true, 0.1, 0)
@@ -76,7 +86,7 @@ export class GameScene extends Phaser.Scene {
     this.player.update(this.inputController)
 
     if (this.player.y > this.scale.height + 100) {
-      this.player.respawn()
+      this.player.fall()
     }
   }
 
@@ -174,6 +184,19 @@ export class GameScene extends Phaser.Scene {
       active = true
       pole.setFillStyle(CHECKPOINT_ACTIVE_COLOR)
       this.player.setSpawn(x, SPAWN_Y)
+    })
+  }
+
+  /** Cœur à ramasser : +1 vie ; il reste en place si la vie est pleine. */
+  private createHeart(x: number, y: number) {
+    const heart = this.add.image(x, y, TEX.heartBig).setScale(ART_SCALE)
+    this.physics.add.existing(heart, true)
+    this.tweens.add({ targets: heart, y: y - 6, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
+
+    this.physics.add.overlap(this.player, heart, () => {
+      if (!heart.active || !this.player.heal()) return
+      this.tweens.killTweensOf(heart)
+      heart.destroy()
     })
   }
 

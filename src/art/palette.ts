@@ -14,4 +14,12 @@ export const PALETTE = {
   dirt: '#8a5230',
   dirtDark: '#5e3420',
   outline: '#3a2014',
+  // Interface : cœurs et barres.
+  heartLight: '#ff8a96',
+  heart: '#e8344a',
+  heartDark: '#9c1830',
+  hudOutline: '#1a1424',
+  barEmpty: '#4a3a46',
+  barEmptyLight: '#5e4c5a',
+  flash: '#ffffff',
 } as const
