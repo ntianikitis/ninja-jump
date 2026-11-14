@@ -7,3 +7,7 @@ export const JUMP_VELOCITY = -620
 // Aides au saut (en millisecondes).
 export const COYOTE_TIME_MS = 100
 export const JUMP_BUFFER_MS = 120
+
+export const ENEMY_SPEED = 80
+// Distance totale parcourue entre les deux demi-tours.
+export const ENEMY_PATROL_DISTANCE = 200
