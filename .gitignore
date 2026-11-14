@@ -29,3 +29,6 @@ dist-ssr
 .Trashes
 Thumbs.db
 Desktop.ini
+
+# Packs d'assets bruts (non versionnés)
+assets-source/
