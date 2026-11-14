@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser'
 
-const BUTTON_RADIUS = 56
+const BUTTON_RADIUS = 19
+const BUTTON_MARGIN = 8
 const BUTTON_ALPHA = 0.35
 const BUTTON_ALPHA_PRESSED = 0.6
 
@@ -44,15 +45,15 @@ export class InputController {
     scene.input.addPointer(2)
 
     const { width, height } = scene.scale
-    const y = height - BUTTON_RADIUS - 24
+    const y = height - BUTTON_RADIUS - BUTTON_MARGIN
 
-    this.createButton(scene, BUTTON_RADIUS + 24, y, '◀', (down) => {
+    this.createButton(scene, BUTTON_RADIUS + BUTTON_MARGIN, y, '◀', (down) => {
       this.touchLeft = down
     })
-    this.createButton(scene, BUTTON_RADIUS * 3 + 48, y, '▶', (down) => {
+    this.createButton(scene, BUTTON_RADIUS * 3 + BUTTON_MARGIN * 2, y, '▶', (down) => {
       this.touchRight = down
     })
-    this.createButton(scene, width - BUTTON_RADIUS - 24, y, '▲', (down) => {
+    this.createButton(scene, width - BUTTON_RADIUS - BUTTON_MARGIN, y, '▲', (down) => {
       if (down) this.touchJumpQueued = true
     })
   }
@@ -66,13 +67,13 @@ export class InputController {
   ) {
     const circle = scene.add
       .circle(x, y, BUTTON_RADIUS, 0xffffff, BUTTON_ALPHA)
-      .setStrokeStyle(4, 0xffffff, 0.8)
+      .setStrokeStyle(1, 0xffffff, 0.8)
       .setScrollFactor(0)
       .setDepth(1000)
       .setInteractive()
 
     scene.add
-      .text(x, y, label, { fontSize: '44px', color: '#ffffff' })
+      .text(x, y, label, { fontSize: '15px', color: '#ffffff' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(1001)

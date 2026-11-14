@@ -1,5 +1,5 @@
 {
-  "scale": 0.5,
+  "scale": 0.18,
   "smooth": true,
   "hitbox": { "width": 48, "height": 120, "bottom": 152 },
   "animations": {

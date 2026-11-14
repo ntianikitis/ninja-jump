@@ -1,50 +1,51 @@
 import type { LevelData } from './types'
 
-// Un écran = 960 de large. Le saut monte à ~155 et couvre ~270 en longueur.
+// En tuiles : un écran = environ 18 colonnes. Le saut monte à ~3 tuiles et couvre ~5 colonnes.
 export const level1: LevelData = {
-  width: 5280,
-  spawnX: 100,
+  width: 98,
+  spawnX: 2,
   objects: [
     // Écran 1 : prise en main.
-    { type: 'block', x: 400, w: 40, h: 40 },
-    { type: 'star', x: 420, y: 110 },
-    { type: 'block', x: 700, w: 40, h: 40 },
-    { type: 'star', x: 720, y: 110 },
+    { type: 'block', x: 7, w: 1, h: 1 },
+    { type: 'star', x: 7, y: 3 },
+    { type: 'block', x: 13, w: 1, h: 1 },
+    { type: 'star', x: 13, y: 3 },
 
-    // Écran 2 : bloc moyen et premier petit trou.
-    { type: 'block', x: 1100, w: 50, h: 80 },
-    { type: 'star', x: 1125, y: 150 },
-    { type: 'hole', x: 1400, w: 100 },
-    { type: 'star', x: 1450, y: 120 },
-    { type: 'block', x: 1750, w: 40, h: 40 },
-    { type: 'star', x: 1770, y: 110 },
+    // Écran 2 : bloc plus haut et premier petit trou.
+    { type: 'block', x: 20, w: 1, h: 2 },
+    { type: 'star', x: 20, y: 4 },
+    { type: 'hole', x: 26, w: 2 },
+    { type: 'star', x: 27, y: 3 },
+    { type: 'block', x: 32, w: 1, h: 1 },
+    { type: 'star', x: 32, y: 3 },
 
     // Écran 3 : premier ennemi seul, puis checkpoint au milieu du niveau.
-    { type: 'enemy', x: 2250 },
-    { type: 'star', x: 2250, y: 140 },
-    { type: 'heart', x: 2500 },
-    { type: 'star', x: 2600 },
-    { type: 'checkpoint', x: 2700 },
+    { type: 'enemy', x: 42 },
+    { type: 'star', x: 42, y: 3 },
+    { type: 'heart', x: 46 },
+    { type: 'star', x: 48 },
+    { type: 'checkpoint', x: 50 },
 
     // Écran 4 : escalier, trou plus large, puis un ennemi (avec de la place pour atterrir).
-    { type: 'block', x: 2950, w: 50, h: 40 },
-    { type: 'star', x: 2975, y: 80 },
-    { type: 'block', x: 3000, w: 50, h: 80 },
-    { type: 'block', x: 3050, w: 50, h: 110 },
-    { type: 'heart', x: 3075, y: 170 }, // récompense en haut de l'escalier
-    { type: 'hole', x: 3250, w: 130 },
-    { type: 'star', x: 3315, y: 130 },
-    { type: 'enemy', x: 3700 },
+    { type: 'block', x: 55, w: 1, h: 1 },
+    { type: 'star', x: 55, y: 3 },
+    { type: 'block', x: 56, w: 1, h: 2 },
+    { type: 'block', x: 57, w: 1, h: 3 },
+    { type: 'heart', x: 57, y: 5 }, // récompense en haut de l'escalier
+    // 3 tuiles d'élan après l'escalier : en descendant de la marche, on ne tombe pas dans le trou.
+    { type: 'hole', x: 61, w: 3 },
+    { type: 'star', x: 62, y: 3 },
+    { type: 'enemy', x: 69 },
 
     // Écrans 5 et 6 : deux ennemis séparés par le plus grand trou, puis l'arrivée.
-    { type: 'heart', x: 3880 },
-    { type: 'enemy', x: 4100 },
-    { type: 'star', x: 4100, y: 140 },
-    { type: 'hole', x: 4350, w: 150 },
-    { type: 'star', x: 4425, y: 130 },
-    { type: 'enemy', x: 4750 },
-    { type: 'star', x: 4750, y: 140 },
-    { type: 'star', x: 5000 },
-    { type: 'finish', x: 5150 },
+    { type: 'heart', x: 72 },
+    { type: 'enemy', x: 76 },
+    { type: 'star', x: 76, y: 3 },
+    { type: 'hole', x: 80, w: 3 },
+    { type: 'star', x: 81, y: 3 },
+    { type: 'enemy', x: 88 },
+    { type: 'star', x: 88, y: 3 },
+    { type: 'star', x: 93 },
+    { type: 'finish', x: 95 },
   ],
 }

@@ -5,7 +5,8 @@ Jeu de plateforme 2D pour un enfant : un petit ninja original saute par-dessus d
 ## Stack
 
 - Vite + TypeScript (template vanilla-ts), Phaser 4
-- Résolution 960x540, Scale Manager en FIT centré, Arcade Physics
+- Résolution 320x180 agrandie par un facteur entier (`pixelArt`, zoom max recalculé au redimensionnement), Arcade Physics
+- Graphismes : pack Kenney « Pixel Platformer » (tuiles 18 px, `public/assets/kenney/`) ; niveaux décrits en tuiles
 - Scènes dans `src/scenes/` (`BootScene` charge les assets puis lance `GameScene`)
 
 ## Commandes

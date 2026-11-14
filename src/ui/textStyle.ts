@@ -7,5 +7,5 @@ export const UI_TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontStyle: 'bold',
   color: '#ffffff',
   stroke: PALETTE.hudOutline,
-  strokeThickness: 6,
+  strokeThickness: 2,
 }

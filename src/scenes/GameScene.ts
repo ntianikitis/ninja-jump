@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser'
-import { ART_SCALE, PALETTE } from '../art/palette'
-import { GRASS_BLADES_HEIGHT, TEX } from '../art/pixelTextures'
+import { ART_SCALE } from '../art/palette'
+import { BG, BG_TILE_SIZE, KENNEY, TILE_SIZE, TILES } from '../art/kenneyTiles'
+import { TEX } from '../art/pixelTextures'
 import { LIFE_LOST_MS, PLAYER_MAX_HEALTH, PLAYER_START_LIVES } from '../config'
 import { InputController } from '../input/InputController'
 import { level1 } from '../levels/level1'
@@ -11,21 +12,24 @@ import { Hud } from '../ui/Hud'
 import { LivesCounter } from '../ui/LivesCounter'
 import type { GameOverData } from './GameOverScene'
 
-const GROUND_TOP = 500
-const GROUND_HEIGHT = 40
-const EDGE_COLOR = Phaser.Display.Color.HexStringToColor(PALETTE.outline).color
-// Nuages : facteur de défilement (parallaxe), espacement et hauteurs, par couche.
-const CLOUD_LAYERS = [
-  { scrollFactor: 0.2, spacing: 260, minY: 30, maxY: 170, alpha: 0.85 },
-  { scrollFactor: 0.4, spacing: 420, minY: 60, maxY: 220, alpha: 1 },
-]
+// Le sol occupe les 2 dernières rangées de tuiles sur 10 (écran de 180 px).
+const ROWS = 10
+const GROUND_ROW = 8
+const GROUND_TOP = GROUND_ROW * TILE_SIZE
 const CHECKPOINT_COLOR = 0x9e9e9e
 const CHECKPOINT_ACTIVE_COLOR = 0xffd60a
 // Hauteur du centre du joueur à l'apparition (il tombe un peu jusqu'au sol).
-const SPAWN_Y = GROUND_TOP - 60
+const SPAWN_Y = GROUND_TOP - 20
 const RESTART_DELAY_MS = 2000
-const PICKUP_DEFAULT_HEIGHT = 40
-const LIVES_GAP = 12
+const LIVES_GAP = 4
+// Parallaxe de l'horizon (nuages et arbres du pack).
+const HORIZON_SCROLL = 0.3
+const HORIZON_TEXTURE = 'bg-horizon'
+
+/** Centre d'une colonne de tuiles, en pixels. */
+const colCenter = (col: number) => col * TILE_SIZE + TILE_SIZE / 2
+/** Centre d'un objet posé `row` rangées au-dessus du sol (1 = juste au-dessus). */
+const rowCenter = (row: number) => GROUND_TOP - (row - 0.5) * TILE_SIZE
 
 export class GameScene extends Phaser.Scene {
   private inputController!: InputController
@@ -44,6 +48,7 @@ export class GameScene extends Phaser.Scene {
 
   create() {
     const level = level1
+    const levelWidth = level.width * TILE_SIZE
     const { height } = this.scale
 
     // La scène est réutilisée par restart() : on remet son état à zéro.
@@ -54,26 +59,26 @@ export class GameScene extends Phaser.Scene {
     this.losingLife = false
 
     // Pas de bord en bas : le joueur doit pouvoir tomber dans les trous.
-    this.physics.world.setBounds(0, 0, level.width, height)
+    this.physics.world.setBounds(0, 0, levelWidth, height)
     this.physics.world.setBoundsCollision(true, true, true, false)
 
-    this.createBackground(level)
-    const solids = this.createSolids(level)
+    this.createBackground(levelWidth)
+    const solids = this.createTerrain(level)
 
-    this.player = new Player(this, level.spawnX, SPAWN_Y)
+    this.player = new Player(this, colCenter(level.spawnX), SPAWN_Y)
     this.physics.add.collider(this.player, solids)
 
     for (const obj of level.objects) {
       if (obj.type === 'enemy') {
-        this.enemies.push(new Enemy(this, obj.x, GROUND_TOP - 20))
+        this.enemies.push(new Enemy(this, colCenter(obj.x), GROUND_TOP - 7))
       } else if (obj.type === 'checkpoint') {
-        this.createCheckpoint(obj.x)
+        this.createCheckpoint(colCenter(obj.x))
       } else if (obj.type === 'finish') {
-        this.createFinish(obj.x)
+        this.createFinish(colCenter(obj.x))
       } else if (obj.type === 'heart') {
-        this.createHeart(obj.x, GROUND_TOP - (obj.y ?? PICKUP_DEFAULT_HEIGHT))
+        this.createHeart(colCenter(obj.x), rowCenter(obj.y ?? 1))
       } else if (obj.type === 'star') {
-        this.createStar(obj.x, GROUND_TOP - (obj.y ?? PICKUP_DEFAULT_HEIGHT))
+        this.createStar(colCenter(obj.x), rowCenter(obj.y ?? 1))
       }
     }
 
@@ -86,7 +91,7 @@ export class GameScene extends Phaser.Scene {
     this.player.on(HEALTH_DEPLETED, () => this.loseLife())
     this.livesCounter = new LivesCounter(this, healthBar.right + LIVES_GAP, healthBar.y, this.lives)
 
-    this.cameras.main.setBounds(0, 0, level.width, height)
+    this.cameras.main.setBounds(0, 0, levelWidth, height)
     this.cameras.main.startFollow(this.player, true, 0.1, 0)
 
     this.inputController = new InputController(this)
@@ -101,94 +106,93 @@ export class GameScene extends Phaser.Scene {
     this.player.update(this.inputController)
 
     // Tomber dans un trou fait perdre une vie directement.
-    if (this.player.y > this.scale.height + 100) {
+    if (this.player.y > this.scale.height + 34) {
       this.player.freeze()
       this.loseLife()
     }
   }
 
-  /** Ciel en dégradé fixe et deux couches de nuages en parallaxe. */
-  private createBackground(level: LevelData) {
-    const { width, height } = this.scale
+  /** Ciel uni (couleur de fond du jeu) et horizon du pack en parallaxe. */
+  private createBackground(levelWidth: number) {
+    const { width } = this.scale
+    const maxScroll = levelWidth - width
 
+    // Bande d'horizon : colonnes « jour » de backgrounds.png, lignes horizon + bas, recollées.
+    if (!this.textures.exists(HORIZON_TEXTURE)) {
+      const w = BG.dayColumns * BG_TILE_SIZE
+      const h = 2 * BG_TILE_SIZE
+      const strip = this.textures.createCanvas(HORIZON_TEXTURE, w, h)!
+      const source = this.textures.get(KENNEY.backgrounds).getSourceImage() as HTMLImageElement
+      strip.context.drawImage(source, 0, BG.horizonRow * BG_TILE_SIZE, w, h, 0, 0, w, h)
+      strip.refresh()
+    }
+    // Une couche qui défile à `factor` parcourt maxScroll × factor : on la remplit sur cette largeur.
     this.add
-      .tileSprite(0, 0, width / ART_SCALE, height / ART_SCALE, TEX.sky)
+      .tileSprite(0, GROUND_TOP - 40, width + maxScroll * HORIZON_SCROLL, 2 * BG_TILE_SIZE, HORIZON_TEXTURE)
       .setOrigin(0)
-      .setScale(ART_SCALE)
-      .setScrollFactor(0)
-      .setDepth(-100)
-
-    const maxScroll = level.width - width
-    CLOUD_LAYERS.forEach((layer, i) => {
-      // Une couche défile de maxScroll * scrollFactor : on la remplit sur cette largeur.
-      const span = width + maxScroll * layer.scrollFactor
-      let n = 0
-      for (let x = 40 + i * 120; x < span; x += layer.spacing) {
-        const y = layer.minY + ((n * 97 + i * 53) % (layer.maxY - layer.minY))
-        const offset = ((n * 61) % 80) - 40
-        this.add
-          .image(Math.round(x + offset), y, TEX.clouds[(n + i) % TEX.clouds.length])
-          .setScale(ART_SCALE)
-          .setScrollFactor(layer.scrollFactor, 0)
-          .setAlpha(layer.alpha)
-          .setDepth(-90 + i)
-        n++
-      }
-    })
+      .setScrollFactor(HORIZON_SCROLL, 0)
+      .setDepth(-90)
   }
 
-  /** Sol sur toute la largeur sauf aux trous, plus les blocs ; renvoie les zones de collision. */
-  private createSolids(level: LevelData) {
+  /** Sol (sauf aux trous) et blocs en tuiles du pack ; renvoie les zones de collision. */
+  private createTerrain(level: LevelData) {
+    const map = this.make.tilemap({ tileWidth: TILE_SIZE, tileHeight: TILE_SIZE, width: level.width, height: ROWS })
+    const tileset = map.addTilesetImage(KENNEY.tiles, KENNEY.tiles, TILE_SIZE, TILE_SIZE, 0, 0)!
+    const layer = map.createBlankLayer('terrain', tileset)!
+
     const solids: Phaser.GameObjects.Zone[] = []
-    const addSolid = (x: number, y: number, w: number, h: number) => {
-      const zone = this.add.zone(x + w / 2, y + h / 2, w, h)
+    /**
+     * Rectangle de terrain : herbe en haut, terre en dessous. Bords gauche/droit visibles ou non ;
+     * `closedBottom` = contour en bas (blocs), sinon la terre continue sous l'écran (sol).
+     */
+    const addTerrain = (col: number, row: number, w: number, h: number, edges: { left: boolean; right: boolean; closedBottom: boolean }) => {
+      const T = TILES
+      for (let c = col; c < col + w; c++) {
+        const left = edges.left && c === col
+        const right = edges.right && c === col + w - 1
+        const pick = (single: number, l: number, mid: number, r: number) =>
+          left && right ? single : left ? l : right ? r : mid
+
+        for (let r = row; r < row + h; r++) {
+          const top = r === row
+          const bottom = edges.closedBottom && r === row + h - 1
+          const tile =
+            top && bottom ? pick(T.slabSingle, T.slabLeft, T.slabMid, T.slabRight)
+            : top ? pick(T.grassSingle, T.grassLeft, T.grassMid, T.grassRight)
+            : bottom ? pick(T.dirtBottomSingle, T.dirtBottomLeft, T.dirtBottomMid, T.dirtBottomRight)
+            : pick(T.dirtSingle, T.dirtLeft, T.dirtMid, T.dirtRight)
+          layer.putTileAt(tile, c, r)
+        }
+      }
+      const zone = this.add.zone((col + w / 2) * TILE_SIZE, (row + h / 2) * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE)
       this.physics.add.existing(zone, true)
       solids.push(zone)
-      this.drawGround(x, y, w, h)
     }
 
+    // Sol : un morceau entre chaque trou ; bords visibles seulement au bord des trous.
     const holes = level.objects
       .filter((obj) => obj.type === 'hole')
       .sort((a, b) => a.x - b.x)
-
-    let groundStart = 0
+    const groundHeight = ROWS - GROUND_ROW
+    let start = 0
     for (const hole of holes) {
-      if (hole.x > groundStart) {
-        addSolid(groundStart, GROUND_TOP, hole.x - groundStart, GROUND_HEIGHT)
+      if (hole.x > start) {
+        addTerrain(start, GROUND_ROW, hole.x - start, groundHeight, { left: start > 0, right: true, closedBottom: false })
       }
-      groundStart = hole.x + hole.w
+      start = hole.x + hole.w
     }
-    if (groundStart < level.width) {
-      addSolid(groundStart, GROUND_TOP, level.width - groundStart, GROUND_HEIGHT)
+    if (start < level.width) {
+      addTerrain(start, GROUND_ROW, level.width - start, groundHeight, { left: start > 0, right: false, closedBottom: false })
     }
 
+    // Blocs : piliers posés sur le sol.
     for (const obj of level.objects) {
       if (obj.type === 'block') {
-        addSolid(obj.x, GROUND_TOP - obj.h, obj.w, obj.h)
+        addTerrain(obj.x, GROUND_ROW - obj.h, obj.w, obj.h, { left: true, right: true, closedBottom: true })
       }
     }
 
     return solids
-  }
-
-  /** Terre en briques + herbe sur le dessus (brins décoratifs au-dessus de y) + bords sombres. */
-  private drawGround(x: number, y: number, w: number, h: number) {
-    // Motif aligné sur le monde pour que les morceaux voisins se raccordent.
-    this.add
-      .tileSprite(x, y, w / ART_SCALE, h / ART_SCALE, TEX.dirt)
-      .setOrigin(0)
-      .setScale(ART_SCALE)
-      .setTilePosition(x / ART_SCALE, y / ART_SCALE)
-
-    const grassTop = y - GRASS_BLADES_HEIGHT * ART_SCALE
-    this.add
-      .tileSprite(x, grassTop, w / ART_SCALE, this.textures.getFrame(TEX.grass).height, TEX.grass)
-      .setOrigin(0)
-      .setScale(ART_SCALE)
-      .setTilePosition(x / ART_SCALE, 0)
-
-    this.add.rectangle(x, y, ART_SCALE, h, EDGE_COLOR).setOrigin(0)
-    this.add.rectangle(x + w - ART_SCALE, y, ART_SCALE, h, EDGE_COLOR).setOrigin(0)
   }
 
   /** −1 vie : la tête clignote, puis retour au checkpoint avec tous les cœurs, ou écran « Oups ! ». */
@@ -212,7 +216,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createCheckpoint(x: number) {
-    const pole = this.add.rectangle(x, GROUND_TOP - 45, 10, 90, CHECKPOINT_COLOR)
+    const pole = this.add.rectangle(x, GROUND_TOP - 15, 4, 30, CHECKPOINT_COLOR)
     this.physics.add.existing(pole, true)
 
     let active = false
@@ -228,7 +232,7 @@ export class GameScene extends Phaser.Scene {
   private createHeart(x: number, y: number) {
     const heart = this.add.image(x, y, TEX.heartBig).setScale(ART_SCALE)
     this.physics.add.existing(heart, true)
-    this.tweens.add({ targets: heart, y: y - 6, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
+    this.tweens.add({ targets: heart, y: y - 2, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
 
     this.physics.add.overlap(this.player, heart, () => {
       if (!heart.active || !this.player.heal()) return
@@ -241,7 +245,7 @@ export class GameScene extends Phaser.Scene {
   private createStar(x: number, y: number) {
     const star = this.add.image(x, y, TEX.star).setScale(ART_SCALE)
     this.physics.add.existing(star, true)
-    this.tweens.add({ targets: star, y: y - 4, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
+    this.tweens.add({ targets: star, y: y - 1, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
 
     let collected = false
     this.physics.add.overlap(this.player, star, () => {
@@ -251,7 +255,7 @@ export class GameScene extends Phaser.Scene {
       this.tweens.killTweensOf(star)
       this.tweens.add({
         targets: star,
-        y: star.y - 30,
+        y: star.y - 10,
         alpha: 0,
         scale: ART_SCALE * 1.5,
         duration: 250,
@@ -261,10 +265,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createFinish(x: number) {
-    this.add.rectangle(x, GROUND_TOP - 80, 8, 160, 0xf1faee)
-    this.add.rectangle(x + 29, GROUND_TOP - 143, 50, 34, 0xffb703)
+    this.add.rectangle(x, GROUND_TOP - 27, 3, 54, 0xf1faee)
+    this.add.rectangle(x + 10, GROUND_TOP - 48, 17, 11, 0xffb703)
 
-    const zone = this.add.zone(x, GROUND_TOP - 80, 40, 160)
+    const zone = this.add.zone(x, GROUND_TOP - 27, 14, 54)
     this.physics.add.existing(zone, true)
     this.physics.add.overlap(this.player, zone, () => this.finishLevel())
   }
@@ -279,11 +283,11 @@ export class GameScene extends Phaser.Scene {
     const text = this.add
       .text(width / 2, height / 2, 'Bravo !', {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '96px',
+        fontSize: '32px',
         fontStyle: 'bold',
         color: '#ffd60a',
         stroke: '#1d3557',
-        strokeThickness: 10,
+        strokeThickness: 4,
       })
       .setOrigin(0.5)
       .setScrollFactor(0)

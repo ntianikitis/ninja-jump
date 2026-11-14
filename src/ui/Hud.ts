@@ -1,8 +1,8 @@
 import * as Phaser from 'phaser'
 import { StatBar, type StatBarOptions } from './StatBar'
 
-const MARGIN = 16
-const ROW_HEIGHT = 24
+const MARGIN = 6
+const ROW_HEIGHT = 12
 
 /** Interface fixe en haut à gauche : les barres s'empilent les unes sous les autres. */
 export class Hud {

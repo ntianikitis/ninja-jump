@@ -14,15 +14,15 @@ export class PixelButton extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number, text: string, onClick: () => void) {
     super(scene, x, y)
     const b = ART_SCALE
-    const width = 300
-    const height = 72
+    const width = 100
+    const height = 24
 
     // Ombre portée sous le bouton, puis contour, face et reflet.
     const shadow = scene.add.rectangle(0, 2 * b, width, height, color(PALETTE.hudOutline))
     const outline = scene.add.rectangle(0, 0, width, height, color(PALETTE.hudOutline))
     this.face = scene.add.rectangle(0, 0, width - 2 * b, height - 2 * b, color(PALETTE.button))
     const highlight = scene.add.rectangle(0, -height / 2 + 2 * b, width - 2 * b, 2 * b, color(PALETTE.buttonLight))
-    const label = scene.add.text(0, 0, text, { ...UI_TEXT_STYLE, fontSize: '36px' }).setOrigin(0.5)
+    const label = scene.add.text(0, 0, text, { ...UI_TEXT_STYLE, fontSize: '12px' }).setOrigin(0.5)
     this.add([shadow, outline, this.face, highlight, label])
     this.movingParts = [outline, this.face, highlight, label].map((part) => ({ part, y: part.y }))
 

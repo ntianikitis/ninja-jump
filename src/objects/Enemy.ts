@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser'
 import { ENEMY_PATROL_DISTANCE, ENEMY_SPEED } from '../config'
 
-const SIZE = 40
+const SIZE = 14
 
 /** Ennemi qui patrouille à gauche et à droite autour de sa position de départ. */
 export class Enemy extends Phaser.GameObjects.Rectangle {

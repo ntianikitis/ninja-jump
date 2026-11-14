@@ -26,19 +26,19 @@ export class GameOverScene extends Phaser.Scene {
     this.ready = false
 
     this.add.rectangle(0, 0, width, height, 0x000000, 0.45).setOrigin(0)
-    new PixelPanel(this, cx, cy, 520, 340)
+    new PixelPanel(this, cx, cy, 180, 116)
 
-    this.add.text(cx, cy - 115, 'Oups !', { ...UI_TEXT_STYLE, fontSize: '64px', color: '#ffd23f', strokeThickness: 8 }).setOrigin(0.5)
-    this.add.text(cx, cy - 55, Phaser.Utils.Array.GetRandom(MESSAGES), { ...UI_TEXT_STYLE, fontSize: '26px' }).setOrigin(0.5)
+    this.add.text(cx, cy - 38, 'Oups !', { ...UI_TEXT_STYLE, fontSize: '22px', color: '#ffd23f', strokeThickness: 3 }).setOrigin(0.5)
+    this.add.text(cx, cy - 16, Phaser.Utils.Array.GetRandom(MESSAGES), { ...UI_TEXT_STYLE, fontSize: '10px' }).setOrigin(0.5)
 
     const scoreText =
       data.stars === 0
         ? 'Les étoiles t’attendent !'
         : `${data.stars} étoile${data.stars > 1 ? 's' : ''} ramassée${data.stars > 1 ? 's' : ''}`
-    const score = this.add.text(cx + 14, cy, scoreText, { ...UI_TEXT_STYLE, fontSize: '26px', color: '#fff6b0' }).setOrigin(0.5)
-    this.add.image(score.x - score.width / 2 - 20, cy, TEX.star).setScale(ART_SCALE)
+    const score = this.add.text(cx + 5, cy + 2, scoreText, { ...UI_TEXT_STYLE, fontSize: '10px', color: '#fff6b0' }).setOrigin(0.5)
+    this.add.image(score.x - score.width / 2 - 7, cy + 2, TEX.star).setScale(ART_SCALE)
 
-    const button = new PixelButton(this, cx, cy + 95, 'Recommencer', () => this.restart())
+    const button = new PixelButton(this, cx, cy + 32, 'Recommencer', () => this.restart())
     button.setAlpha(0.6)
 
     this.time.delayedCall(INPUT_DELAY_MS, () => {

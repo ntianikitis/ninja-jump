@@ -1,18 +1,7 @@
-// 1 pixel d'art = ART_SCALE unités de jeu (le jeu « pense » en 480x270).
-export const ART_SCALE = 2
+// 1 pixel d'art = ART_SCALE pixels du jeu (le jeu est déjà en résolution pixel art, 320x180).
+export const ART_SCALE = 1
 
 export const PALETTE = {
-  // Ciel, du haut (foncé) vers l'horizon (clair).
-  sky: ['#2a5fc4', '#3170d0', '#3a80da', '#4690e2', '#55a0ea', '#68b2f0', '#7fc4f5', '#9ad5f8'],
-  cloud: '#ffffff',
-  cloudShade: '#c9dcf0',
-  cloudEdge: '#a9c3e0',
-  grassLight: '#8ee04a',
-  grass: '#55b62e',
-  grassDark: '#2f7d22',
-  dirtLight: '#a8683a',
-  dirt: '#8a5230',
-  dirtDark: '#5e3420',
   outline: '#3a2014',
   // Interface : cœurs et barres.
   heartLight: '#ff8a96',
