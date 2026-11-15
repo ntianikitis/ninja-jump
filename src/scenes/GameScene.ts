@@ -37,7 +37,8 @@ import type { GameOverData } from './GameOverScene'
 
 // Hauteur du centre du joueur au-dessus de ses pieds à l'apparition (il tombe un peu).
 const SPAWN_HEIGHT = 20
-const RESTART_DELAY_MS = 2000
+// Après « Bravo ! », délai avant le retour à l'écran de démarrage.
+const BACK_TO_START_MS = 2000
 const LIVES_GAP = 4
 // Les cœurs du pack (18 px, dessin d'environ 14 px) se suivent tous les 14 px.
 const HEART_SPACING = 14
@@ -461,6 +462,6 @@ export class GameScene extends Phaser.Scene {
       .setScale(0.5)
 
     this.tweens.add({ targets: text, scale: 1, duration: 300, ease: 'Back.Out' })
-    this.time.delayedCall(RESTART_DELAY_MS, () => this.scene.restart())
+    this.time.delayedCall(BACK_TO_START_MS, () => this.scene.start('StartScene'))
   }
 }
