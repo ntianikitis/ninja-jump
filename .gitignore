@@ -32,3 +32,7 @@ Desktop.ini
 
 # Packs d'assets bruts (non versionnés)
 assets-source/
+
+# Environnement et cache Python des outils
+tools/.venv/
+__pycache__/
