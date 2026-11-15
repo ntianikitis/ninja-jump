@@ -3,6 +3,7 @@ import * as Phaser from 'phaser'
 import { BootScene } from './scenes/BootScene'
 import { GameOverScene } from './scenes/GameOverScene'
 import { GameScene } from './scenes/GameScene'
+import { StartScene } from './scenes/StartScene'
 import { SKY_COLOR } from './art/kenneyTiles'
 import { DEBUG_PHYSICS, GRAVITY } from './config'
 import { fitToWindow, VIEW_HEIGHT, VIEW_WIDTH, WORLD_ZOOM } from './display'
@@ -27,7 +28,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: DEBUG_PHYSICS,
     },
   },
-  scene: [BootScene, GameScene, GameOverScene],
+  scene: [BootScene, StartScene, GameScene, GameOverScene],
 }
 
 const game = new Phaser.Game(config)

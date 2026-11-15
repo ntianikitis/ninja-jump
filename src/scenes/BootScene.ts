@@ -25,6 +25,6 @@ export class BootScene extends Phaser.Scene {
     createPixelTextures(this)
     createKenneyAnimations(this)
     createPlayerAnimations(this)
-    this.scene.start('GameScene')
+    this.scene.start('StartScene')
   }
 }
