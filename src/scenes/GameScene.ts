@@ -429,7 +429,9 @@ export class GameScene extends Phaser.Scene {
     this.add.image(x, bottom, KENNEY.tiles, TILES.flagPole).setOrigin(0.5, 1)
     this.add.sprite(x, bottom - TILE_SIZE, KENNEY.tiles, TILES.flag).setOrigin(0.5, 1).play(ANIMS.flagWave)
 
-    const zone = this.add.zone(x, bottom - TILE_SIZE, TILE_SIZE, 2 * TILE_SIZE)
+    // Zone d'arrivée sur toute la hauteur, jusqu'en haut de l'écran : on ne peut pas passer par-dessus
+    // le drapeau en sautant (sinon on se retrouve bloqué au bout du niveau).
+    const zone = this.add.zone(x, bottom / 2, TILE_SIZE, bottom)
     this.physics.add.existing(zone, true)
     this.physics.add.overlap(this.player, zone, () => this.finishLevel())
   }
