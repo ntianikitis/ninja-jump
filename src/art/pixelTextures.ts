@@ -4,6 +4,8 @@ import { PALETTE } from './palette'
 // Textures dessinées en code, au style du pack (qui n'a ni ninja, ni shuriken, ni coffre, ni fumée).
 export const TEX = {
   ninjaHead: 'px-ninja-head',
+  soundOn: 'px-sound-on',
+  soundOff: 'px-sound-off',
   shuriken: 'px-shuriken',
   chest: ['px-chest-closed', 'px-chest-opening', 'px-chest-open'],
   poof: ['px-poof-0', 'px-poof-1', 'px-poof-2'],
@@ -18,6 +20,9 @@ type Ctx = CanvasRenderingContext2D
 
 /** Génère les textures pixel art maison et leurs animations (à appeler une fois, dans BootScene). */
 export function createPixelTextures(scene: Phaser.Scene) {
+  const speakerColors = { o: PALETTE.outline, w: PALETTE.metalLight, r: PALETTE.red }
+  drawPattern(scene, TEX.soundOn, SOUND_ON, speakerColors)
+  drawPattern(scene, TEX.soundOff, SOUND_OFF, speakerColors)
   drawPattern(scene, TEX.shuriken, SHURIKEN, { o: PALETTE.outline, w: PALETTE.metalLight, g: PALETTE.metal, d: PALETTE.shadow })
   TEX.chest.forEach((key, stage) => draw(scene, key, 18, 18, (ctx) => drawChest(ctx, stage)))
   TEX.poof.forEach((key, stage) => draw(scene, key, 16, 16, (ctx) => drawPoof(ctx, stage)))
@@ -49,6 +54,32 @@ const NINJA_HEAD = [
   '.ohhhhhhhko.',
   '..okkkkkkko.',
   '...oooooo...',
+]
+
+// Haut-parleur : o = contour, w = corps ; ondes (son activé) ou croix rouge r (son coupé).
+const SOUND_ON = [
+  '....oo......',
+  '...owo..o...',
+  'oooowo...o..',
+  'owwwwo.o..o.',
+  'owwwwo..o.o.',
+  'owwwwo..o.o.',
+  'owwwwo.o..o.',
+  'oooowo...o..',
+  '...owo..o...',
+  '....oo......',
+]
+const SOUND_OFF = [
+  '....oo......',
+  '...owo......',
+  'oooowo.r...r',
+  'owwwwo..r.r.',
+  'owwwwo...r..',
+  'owwwwo..r.r.',
+  'owwwwo.r...r',
+  'oooowo......',
+  '...owo......',
+  '....oo......',
 ]
 
 // Shuriken à 4 pointes : o = contour, w = reflet, g = métal, d = trou central.

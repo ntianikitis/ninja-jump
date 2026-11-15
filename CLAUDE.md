@@ -10,7 +10,9 @@ Jeu de plateforme 2D pour un enfant : un petit ninja original saute par-dessus d
 - Personnage : `public/assets/player/` (voir son README), généré par `tools/clean_spritesheet.py --game public/assets/player`
 - Graphismes : pack Kenney « Pixel Platformer » (tuiles 18 px, `public/assets/kenney/`)
 - Niveaux : maps Tiled en JSON (`public/assets/maps/level1.tmj`), lues par `src/levels/tiledLevel.ts`
-- Scènes dans `src/scenes/` (`BootScene` charge les assets puis lance `GameScene`)
+- Audio (`public/assets/audio/`, réglages dans `config.ts`) : musique de fond générée par `tools/make_music.py`
+  (remplaçable par un autre fichier), jingles du pack Kenney « Music Jingles », bruitages synthétisés (`src/audio/sfx.ts`)
+- Scènes dans `src/scenes/` (`BootScene` charge les assets puis lance `StartScene`, puis `GameScene`)
 
 ## Commandes
 

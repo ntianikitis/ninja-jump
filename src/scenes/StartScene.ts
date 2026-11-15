@@ -1,8 +1,10 @@
 import * as Phaser from 'phaser'
 import { ANIMS, KENNEY, SKY_COLOR, TILE_SIZE, TILES } from '../art/kenneyTiles'
 import { getCharacterManifest, PLAYER_TEXTURE, playerAnimKey } from '../characters/playerAssets'
-import { setupWorldCamera, VIEW_HEIGHT, VIEW_WIDTH } from '../display'
+import { playJingle, startMusic } from '../audio/audio'
+import { setupWorldCamera, UI_OFFSET, VIEW_HEIGHT, VIEW_WIDTH } from '../display'
 import { PixelButton } from '../ui/PixelButton'
+import { SoundToggle } from '../ui/SoundToggle'
 import { UI_TEXT_STYLE } from '../ui/textStyle'
 
 const GROUND_TOP = 8 * TILE_SIZE
@@ -39,6 +41,8 @@ export class StartScene extends Phaser.Scene {
     this.tweens.add({ targets: title, y: 37, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
 
     new PixelButton(this, cx, 88, 'Jouer', () => this.start())
+    // Élément fixe à l'écran : décalé comme l'interface du jeu (voir UI_OFFSET).
+    new SoundToggle(this, UI_OFFSET.x + VIEW_WIDTH - 12, UI_OFFSET.y + 12)
 
     const hint = this.sys.game.device.input.touch
       ? 'Boutons à l’écran : ◀ ▶ courir, ▲ sauter, shuriken pour lancer'
@@ -54,6 +58,9 @@ export class StartScene extends Phaser.Scene {
   private start() {
     if (this.starting) return
     this.starting = true
+    // Le clic (ou la touche) sert de premier geste : le navigateur autorise alors le son.
+    startMusic(this)
+    playJingle(this, 'start')
     this.cameras.main.fadeOut(250, 223, 246, 245)
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('GameScene'))
   }

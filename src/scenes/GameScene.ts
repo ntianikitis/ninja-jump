@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser'
 import { ANIMS, KENNEY, SKY_COLOR, TILE_SIZE, TILES } from '../art/kenneyTiles'
 import { TEX } from '../art/pixelTextures'
+import { playJingle, startMusic } from '../audio/audio'
 import { Sfx } from '../audio/sfx'
 import { setupWorldCamera, UI_OFFSET, VIEW_HEIGHT, VIEW_WIDTH } from '../display'
 import {
@@ -32,6 +33,7 @@ import { Shuriken } from '../objects/Shuriken'
 import { Spring } from '../objects/Spring'
 import { Hud } from '../ui/Hud'
 import { LivesCounter } from '../ui/LivesCounter'
+import { SoundToggle } from '../ui/SoundToggle'
 import type { TileCounter } from '../ui/TileCounter'
 import type { GameOverData } from './GameOverScene'
 
@@ -152,6 +154,8 @@ export class GameScene extends Phaser.Scene {
     this.player.on(HEALTH_DEPLETED, () => this.loseLife())
     this.livesCounter = new LivesCounter(this, healthBar.right + LIVES_GAP, healthBar.y, this.lives)
     this.ammoCounter = hud.addCounter({ icon: TEX.shuriken, value: this.ammo })
+    new SoundToggle(this, UI_OFFSET.x + VIEW_WIDTH - 12, UI_OFFSET.y + 12)
+    startMusic(this)
 
     // La caméra ne suit verticalement que si la map est plus haute que l'écran.
     const followY = this.levelHeight > VIEW_HEIGHT ? 0.1 : 0
@@ -290,7 +294,7 @@ export class GameScene extends Phaser.Scene {
     if (!enemy.active || index === -1) return
     this.enemies.splice(index, 1)
     enemy.defeat()
-    this.sfx.poof()
+    playJingle(this, 'enemyDefeated')
   }
 
   /** Coffre : à l'ouverture, ses shurikens jaillissent puis volent un par un jusqu'au compteur. */
@@ -331,6 +335,7 @@ export class GameScene extends Phaser.Scene {
     this.lives--
     this.livesCounter.loseLife(LIFE_LOST_MS)
     this.player.playDeath()
+    playJingle(this, this.lives > 0 ? 'lifeLost' : 'gameOver')
 
     this.time.delayedCall(LIFE_LOST_MS, () => {
       if (this.lives > 0) {
@@ -446,6 +451,7 @@ export class GameScene extends Phaser.Scene {
     this.finished = true
 
     this.player.celebrate()
+    playJingle(this, 'victory')
 
     const text = this.add
       .text(UI_OFFSET.x + VIEW_WIDTH / 2, UI_OFFSET.y + VIEW_HEIGHT / 2, 'Bravo !', {

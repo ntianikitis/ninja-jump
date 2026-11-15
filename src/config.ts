@@ -41,5 +41,20 @@ export const SPRING_VELOCITY = -300
 export const FLYER_SPEED = 30
 export const FLYER_WAVE_MS = 1600
 
+// Audio (fichiers .m4a dans public/assets/audio/). Musique de fond : pour la changer, déposer le fichier
+// et mettre son nom ici. Jingles : nom du fichier (sans .m4a) pour chaque moment ; « ninja-… » sont générés
+// par tools/make_music.py, « jingles_NES… » viennent du pack Kenney « Music Jingles ».
+export const MUSIC_FILE = 'ninja-loop.m4a'
+export const MUSIC_VOLUME = 0.35
+export const JINGLES = {
+  start: 'ninja-gong',
+  restart: 'ninja-gong',
+  victory: 'ninja-victory-a',
+  gameOver: 'jingles_NES00',
+  lifeLost: 'jingles_NES13',
+  enemyDefeated: 'jingles_NES15',
+} as const
+export const JINGLE_VOLUME = 0.7
+
 // Contours de collision visibles (utile pour régler hitbox et niveau).
 export const DEBUG_PHYSICS = false

@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import { KENNEY, TILES } from '../art/kenneyTiles'
+import { playJingle } from '../audio/audio'
 import { setupWorldCamera, VIEW_HEIGHT, VIEW_WIDTH } from '../display'
 import { PixelButton } from '../ui/PixelButton'
 import { PixelPanel } from '../ui/PixelPanel'
@@ -58,6 +59,7 @@ export class GameOverScene extends Phaser.Scene {
   private restart() {
     if (!this.ready) return
     this.ready = false
+    playJingle(this, 'restart')
     this.scene.stop()
     this.scene.get('GameScene').scene.restart()
   }

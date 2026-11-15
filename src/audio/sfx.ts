@@ -6,10 +6,13 @@ import type * as Phaser from 'phaser'
  */
 export class Sfx {
   private readonly ctx?: AudioContext
+  /** Sortie de Phaser (volume général et « son coupé »), à défaut celle du navigateur. */
+  private readonly out?: AudioNode
 
   constructor(scene: Phaser.Scene) {
     const manager = scene.sound as Partial<Phaser.Sound.WebAudioSoundManager>
     this.ctx = manager.context
+    this.out = manager.destination ?? this.ctx?.destination
   }
 
   /** Sifflement court du lancer. */
@@ -54,7 +57,7 @@ export class Sfx {
     osc.frequency.exponentialRampToValueAtTime(to, start + duration)
     gain.gain.setValueAtTime(volume, start)
     gain.gain.exponentialRampToValueAtTime(0.001, start + duration)
-    osc.connect(gain).connect(ctx.destination)
+    osc.connect(gain).connect(this.out ?? ctx.destination)
     osc.start(start)
     osc.stop(start + duration)
   }
@@ -77,7 +80,7 @@ export class Sfx {
     const gain = ctx.createGain()
     gain.gain.setValueAtTime(volume, start)
     gain.gain.exponentialRampToValueAtTime(0.001, start + duration)
-    source.connect(filter).connect(gain).connect(ctx.destination)
+    source.connect(filter).connect(gain).connect(this.out ?? ctx.destination)
     source.start(start)
   }
 }
