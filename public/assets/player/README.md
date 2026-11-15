@@ -9,7 +9,7 @@ Le jeu charge ces trois fichiers ; pour changer de personnage, il suffit de les 
 ## Noms des images dans l'atlas
 
 Chaque image s'appelle `<animation>/<numéro>`, numéros sur deux chiffres à partir de `00`
-(ex. `run/00`, `run/01`…). Les six animations sont obligatoires :
+(ex. `run/00`, `run/01`…). Les six premières animations sont obligatoires, les deux dernières facultatives :
 
 | Animation | Utilisée quand…                     |
 |-----------|-------------------------------------|
@@ -19,12 +19,16 @@ Chaque image s'appelle `<animation>/<numéro>`, numéros sur deux chiffres à pa
 | `fall`    | le joueur descend                   |
 | `hurt`    | le joueur touche un ennemi          |
 | `victory` | le joueur atteint le drapeau        |
+| `throw`   | (facultative) lancer de shuriken    |
+| `death`   | (facultative) perte d'une vie       |
 
-Les images sont dessinées **tournées vers la droite** : le jeu les retourne pour aller à gauche.
+Les images sont dessinées **tournées vers la droite** : le jeu les retourne pour aller à gauche, autour du
+**centre de l'image** : le corps (la tête) doit donc être centré horizontalement dans chaque image.
 
 ## `character.json`
 
-- `scale` : facteur d'affichage des images (0.5 = images dessinées en double résolution).
+- `scale` : facteur d'affichage des images. Le monde est zoomé ×2 : avec 0.5, chaque pixel du dessin reste un
+  pixel à l'écran (personnage deux fois plus fin que les tuiles).
 - `smooth` : `true` pour lisser les images (personnage non pixel art) ; à omettre pour un personnage en pixel art.
 - `hitbox` : zone de collision, en pixels de l'image (avant `scale`) ; centrée horizontalement,
   `bottom` = ligne des pieds mesurée depuis le haut de l'image.
@@ -32,6 +36,9 @@ Les images sont dessinées **tournées vers la droite** : le jeu les retourne po
 
 ## Personnage actuel
 
-`character-r` du pack « Blocky Characters » de Kenney (www.kenney.nl), licence CC0.
-Images générées depuis le modèle 3D avec `tools/render-player.html?save=1`
-(le pack doit être dans `assets-source/kenney-personnage/`).
+Ninja rouge en pixel art, nettoyé depuis la planche `assets-source/reference/character-exemple.jpeg`
+par l'outil `tools/clean_spritesheet.py`, qui écrit directement ces trois fichiers :
+
+    tools/.venv/bin/python tools/clean_spritesheet.py --game public/assets/player
+
+(Environnement Python : `python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements.txt`.)

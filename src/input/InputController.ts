@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import { TEX } from '../art/pixelTextures'
+import { UI_OFFSET, VIEW_HEIGHT, VIEW_WIDTH } from '../display'
 
 const BUTTON_RADIUS = 19
 const BUTTON_MARGIN = 8
@@ -70,20 +71,22 @@ export class InputController {
     // Permet de courir et sauter en même temps (plusieurs doigts).
     scene.input.addPointer(2)
 
-    const { width, height } = scene.scale
-    const y = height - BUTTON_RADIUS - BUTTON_MARGIN
+    // Coordonnées de la vue 320x180, décalées pour les éléments fixes à l'écran (voir UI_OFFSET).
+    const left = UI_OFFSET.x
+    const right = UI_OFFSET.x + VIEW_WIDTH
+    const y = UI_OFFSET.y + VIEW_HEIGHT - BUTTON_RADIUS - BUTTON_MARGIN
 
-    this.createButton(scene, BUTTON_RADIUS + BUTTON_MARGIN, y, '◀', (down) => {
+    this.createButton(scene, left + BUTTON_RADIUS + BUTTON_MARGIN, y, '◀', (down) => {
       this.touchLeft = down
     })
-    this.createButton(scene, BUTTON_RADIUS * 3 + BUTTON_MARGIN * 2, y, '▶', (down) => {
+    this.createButton(scene, left + BUTTON_RADIUS * 3 + BUTTON_MARGIN * 2, y, '▶', (down) => {
       this.touchRight = down
     })
-    this.createButton(scene, width - BUTTON_RADIUS - BUTTON_MARGIN, y, '▲', (down) => {
+    this.createButton(scene, right - BUTTON_RADIUS - BUTTON_MARGIN, y, '▲', (down) => {
       if (down) this.touchJumpQueued = true
     })
     // Bouton shuriken, à gauche du saut.
-    this.throwButton = this.createButton(scene, width - BUTTON_RADIUS * 3 - BUTTON_MARGIN * 2, y, TEX.shuriken, (down) => {
+    this.throwButton = this.createButton(scene, right - BUTTON_RADIUS * 3 - BUTTON_MARGIN * 2, y, TEX.shuriken, (down) => {
       if (down) this.touchThrowQueued = true
     })
   }

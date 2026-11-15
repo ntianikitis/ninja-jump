@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser'
 import {
   getCharacterManifest,
+  hasPlayerAnim,
   PLAYER_TEXTURE,
   playerAnimKey,
   type PlayerAnim,
@@ -38,6 +39,8 @@ export class Player extends Phaser.GameObjects.Sprite {
   private invincibleUntil = -Infinity
   /** Figé : perte d'une vie en cours, ou victoire. */
   private frozen = false
+  /** Jusqu'à cet instant, une animation d'action (lancer) remplace la course / le saut. */
+  private actionUntil = -Infinity
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, PLAYER_TEXTURE)
@@ -137,6 +140,20 @@ export class Player extends Phaser.GameObjects.Sprite {
     return true
   }
 
+  /** Lancer de shuriken : animation courte qui ne bloque pas les déplacements (si le personnage la fournit). */
+  playThrow() {
+    if (this.frozen || !hasPlayerAnim(this.scene, 'throw')) return
+    this.playAnim('throw')
+    this.actionUntil = this.scene.time.now + this.anims.duration
+  }
+
+  /** Perte d'une vie : animation de chute au sol si le personnage la fournit, sinon blessure. */
+  playDeath() {
+    this.freeze()
+    this.actionUntil = -Infinity
+    this.playAnim(hasPlayerAnim(this.scene, 'death') ? 'death' : 'hurt')
+  }
+
   /** Projeté vers le haut (ressort) : remplace un saut normal. */
   bounce(velocityY: number) {
     this.body.setVelocityY(velocityY)
@@ -147,7 +164,10 @@ export class Player extends Phaser.GameObjects.Sprite {
 
   /** Arrivée atteinte : le joueur s'arrête et fête sa victoire. */
   celebrate() {
-    this.freeze()
+    // Plus de contrôle, mais la gravité continue : si l'arrivée est atteinte en plein saut, le joueur retombe au sol.
+    this.frozen = true
+    this.actionUntil = -Infinity
+    this.body.setVelocityX(0)
     this.playAnim('victory')
   }
 
@@ -161,6 +181,7 @@ export class Player extends Phaser.GameObjects.Sprite {
   /** Retour au dernier checkpoint avec tous les cœurs. */
   respawn() {
     this.frozen = false
+    this.actionUntil = -Infinity
     this.body.moves = true
     this.setHealth(PLAYER_MAX_HEALTH)
 
@@ -197,6 +218,9 @@ export class Player extends Phaser.GameObjects.Sprite {
     // Les images regardent vers la droite ; on garde la dernière direction à l'arrêt.
     if (velocity.x < 0) this.setFlipX(true)
     else if (velocity.x > 0) this.setFlipX(false)
+
+    // Une action en cours (lancer) garde son animation jusqu'au bout.
+    if (this.scene.time.now < this.actionUntil) return
 
     if (!grounded) {
       this.playAnim(velocity.y < 0 ? 'jump' : 'fall')

@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import { KENNEY, TILES } from '../art/kenneyTiles'
+import { setupWorldCamera, VIEW_HEIGHT, VIEW_WIDTH } from '../display'
 import { PixelButton } from '../ui/PixelButton'
 import { PixelPanel } from '../ui/PixelPanel'
 import { UI_TEXT_STYLE } from '../ui/textStyle'
@@ -19,7 +20,11 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   create(data: GameOverData) {
-    const { width, height } = this.scale
+    // Même zoom que le jeu, caméra centrée sur la vue 320x180 : les coordonnées ci-dessous restent celles de la vue.
+    setupWorldCamera(this)
+    this.cameras.main.centerOn(VIEW_WIDTH / 2, VIEW_HEIGHT / 2)
+    const width = VIEW_WIDTH
+    const height = VIEW_HEIGHT
     const cx = width / 2
     const cy = height / 2
     this.ready = false

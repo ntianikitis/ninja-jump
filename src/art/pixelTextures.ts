@@ -30,7 +30,7 @@ export function createPixelTextures(scene: Phaser.Scene) {
     o: PALETTE.outline,
     h: PALETTE.hood,
     k: PALETTE.hoodDark,
-    r: PALETTE.red,
+    r: PALETTE.hoodDark,
     s: PALETTE.skin,
     e: PALETTE.outline,
   })

@@ -17,8 +17,8 @@ export const PALETTE = {
   metal: '#959ab1',
   metalLight: '#dce1e7',
   shadow: '#2b2f3d',
-  // Tête de ninja (vies).
-  hood: '#4f5670',
-  hoodDark: '#383e52',
-  skin: '#f4ac66',
+  // Tête de ninja (vies), aux couleurs du personnage.
+  hood: '#ac2618',
+  hoodDark: '#7b221a',
+  skin: '#dfa17c',
 } as const

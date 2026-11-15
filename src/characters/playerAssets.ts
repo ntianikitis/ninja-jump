@@ -5,7 +5,9 @@ export const PLAYER_TEXTURE = 'player'
 const PLAYER_CHARACTER = 'player-character'
 
 export const PLAYER_ANIMS = ['idle', 'run', 'jump', 'fall', 'hurt', 'victory'] as const
-export type PlayerAnim = (typeof PLAYER_ANIMS)[number]
+/** Animations facultatives : jouées si l'atlas les fournit (lancer de shuriken, perte d'une vie). */
+export const OPTIONAL_PLAYER_ANIMS = ['throw', 'death'] as const
+export type PlayerAnim = (typeof PLAYER_ANIMS)[number] | (typeof OPTIONAL_PLAYER_ANIMS)[number]
 
 export type CharacterManifest = {
   scale: number
@@ -13,7 +15,7 @@ export type CharacterManifest = {
   smooth?: boolean
   /** En pixels de l'image ; centrée horizontalement, bottom = ligne des pieds. */
   hitbox: { width: number; height: number; bottom: number }
-  animations: Record<PlayerAnim, { frameRate: number; repeat: number }>
+  animations: Partial<Record<PlayerAnim, { frameRate: number; repeat: number }>>
 }
 
 export const playerAnimKey = (anim: PlayerAnim) => `player-${anim}`
@@ -34,16 +36,21 @@ export function createPlayerAnimations(scene: Phaser.Scene) {
   if (smooth) texture.setFilter(Phaser.Textures.FilterMode.LINEAR)
   const frameNames = texture.getFrameNames()
 
-  for (const anim of PLAYER_ANIMS) {
+  const optional: readonly string[] = OPTIONAL_PLAYER_ANIMS
+  for (const anim of [...PLAYER_ANIMS, ...OPTIONAL_PLAYER_ANIMS]) {
     const frames = frameNames
       .filter((name) => name.startsWith(`${anim}/`))
       .sort()
       .map((frame) => ({ key: PLAYER_TEXTURE, frame }))
 
     if (frames.length === 0) {
+      if (optional.includes(anim)) continue
       throw new Error(`Animation « ${anim} » absente de l'atlas du joueur`)
     }
 
-    scene.anims.create({ key: playerAnimKey(anim), frames, ...animations[anim] })
+    scene.anims.create({ key: playerAnimKey(anim), frames, ...(animations[anim] ?? { frameRate: 10, repeat: 0 }) })
   }
 }
+
+/** Vrai si le personnage fournit cette animation (utile pour les animations facultatives). */
+export const hasPlayerAnim = (scene: Phaser.Scene, anim: PlayerAnim) => scene.anims.exists(playerAnimKey(anim))

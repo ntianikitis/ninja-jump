@@ -5,7 +5,9 @@ Jeu de plateforme 2D pour un enfant : un petit ninja original saute par-dessus d
 ## Stack
 
 - Vite + TypeScript (template vanilla-ts), Phaser 4
-- Résolution 320x180 agrandie par un facteur entier (`pixelArt`, zoom max recalculé au redimensionnement), Arcade Physics
+- Monde de 320x180 (tuiles 18 px) dessiné en 640x360 avec une caméra zoomée ×2 (`src/display.ts`), canvas
+  agrandi par un facteur entier (`pixelArt`) ; le ninja est dessiné deux fois plus finement que les tuiles. Arcade Physics
+- Personnage : `public/assets/player/` (voir son README), généré par `tools/clean_spritesheet.py --game public/assets/player`
 - Graphismes : pack Kenney « Pixel Platformer » (tuiles 18 px, `public/assets/kenney/`)
 - Niveaux : maps Tiled en JSON (`public/assets/maps/level1.tmj`), lues par `src/levels/tiledLevel.ts`
 - Scènes dans `src/scenes/` (`BootScene` charge les assets puis lance `GameScene`)

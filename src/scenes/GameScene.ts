@@ -2,6 +2,7 @@ import * as Phaser from 'phaser'
 import { ANIMS, KENNEY, SKY_COLOR, TILE_SIZE, TILES } from '../art/kenneyTiles'
 import { TEX } from '../art/pixelTextures'
 import { Sfx } from '../audio/sfx'
+import { setupWorldCamera, UI_OFFSET, VIEW_HEIGHT, VIEW_WIDTH } from '../display'
 import {
   ENEMY_PATROL_DISTANCE,
   SPRING_VELOCITY,
@@ -96,6 +97,7 @@ export class GameScene extends Phaser.Scene {
     const levelWidth = map.widthInPixels
     this.levelHeight = map.heightInPixels
 
+    setupWorldCamera(this)
     this.cameras.main.setBackgroundColor(readBackgroundColor(this) ?? SKY_COLOR)
     // Pas de bord en bas : le joueur doit pouvoir tomber dans les trous.
     this.physics.world.setBounds(0, 0, levelWidth, this.levelHeight)
@@ -151,7 +153,7 @@ export class GameScene extends Phaser.Scene {
     this.ammoCounter = hud.addCounter({ icon: TEX.shuriken, value: this.ammo })
 
     // La caméra ne suit verticalement que si la map est plus haute que l'écran.
-    const followY = this.levelHeight > this.scale.height ? 0.1 : 0
+    const followY = this.levelHeight > VIEW_HEIGHT ? 0.1 : 0
     this.cameras.main.setBounds(0, 0, levelWidth, this.levelHeight)
     this.cameras.main.startFollow(this.player, true, 0.1, followY)
 
@@ -230,7 +232,6 @@ export class GameScene extends Phaser.Scene {
 
     // Tomber dans un trou fait perdre une vie directement.
     if (this.player.y > this.levelHeight + 34) {
-      this.player.freeze()
       this.loseLife()
     }
   }
@@ -245,9 +246,10 @@ export class GameScene extends Phaser.Scene {
       return
     }
     const parallaxX = layer.parallaxx ?? 1
-    const { width } = this.scale
+    const width = VIEW_WIDTH
     // Une couche qui défile à `parallaxX` parcourt (levelWidth - width) × parallaxX : on la remplit sur cette largeur.
-    const span = width + (levelWidth - width) * parallaxX
+    // (+ une vue de marge : avec le zoom centré, le bord gauche visible est décalé d'une demi-vue.)
+    const span = 2 * width + (levelWidth - width) * parallaxX
     this.add
       .tileSprite(layer.offsetx ?? 0, layer.offsety ?? 0, span, this.textures.getFrame(key).height, key)
       .setOrigin(0)
@@ -271,6 +273,7 @@ export class GameScene extends Phaser.Scene {
     const shuriken = new Shuriken(this, this.player.x + direction * 6, this.player.body.bottom - 10)
     this.shurikens.add(shuriken)
     shuriken.launch(direction)
+    this.player.playThrow()
     this.setAmmo(this.ammo - 1)
     this.sfx.throw()
   }
@@ -326,6 +329,7 @@ export class GameScene extends Phaser.Scene {
     this.losingLife = true
     this.lives--
     this.livesCounter.loseLife(LIFE_LOST_MS)
+    this.player.playDeath()
 
     this.time.delayedCall(LIFE_LOST_MS, () => {
       if (this.lives > 0) {
@@ -442,9 +446,8 @@ export class GameScene extends Phaser.Scene {
 
     this.player.celebrate()
 
-    const { width, height } = this.scale
     const text = this.add
-      .text(width / 2, height / 2, 'Bravo !', {
+      .text(UI_OFFSET.x + VIEW_WIDTH / 2, UI_OFFSET.y + VIEW_HEIGHT / 2, 'Bravo !', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '32px',
         fontStyle: 'bold',

@@ -8,6 +8,7 @@ alignement sur une ligne de pieds commune, export d'une bande PNG + d'un GIF d'a
 Utilisation (depuis la racine du projet) :
     tools/.venv/bin/python tools/clean_spritesheet.py
     tools/.venv/bin/python tools/clean_spritesheet.py --pixel 3.6 --out assets-source/ninja-clean-petit
+    tools/.venv/bin/python tools/clean_spritesheet.py --game public/assets/player   # fichiers du joueur pour le jeu
 """
 
 from __future__ import annotations
@@ -266,10 +267,11 @@ def align(frames: list[Frame], report: Report) -> dict[str, list[Image.Image]]:
         anchor = int(round(np.nonzero(head)[1].mean()))
         infos.append((f, top, bottom, left, right, anchor))
 
-    left_extent = max(anchor - left for _, _, _, left, _, anchor in infos)
-    right_extent = max(right - anchor for _, _, _, _, right, anchor in infos)
+    # Tête au centre exact de l'image : le jeu retourne le sprite autour de ce centre (demi-tour)
+    # et y centre la hitbox, donc le corps ne doit pas se décaler quand le ninja change de direction.
+    extent = max(max(anchor - left, right - anchor) for _, _, _, left, right, anchor in infos)
     height = max(bottom - top for _, top, bottom, _, _, _ in infos)
-    width = left_extent + right_extent + 2
+    width = 2 * extent + 1
     report.frame_size = (int(width), int(height + 1))
     report.feet_y = int(height + 1)
 
@@ -277,7 +279,7 @@ def align(frames: list[Frame], report: Report) -> dict[str, list[Image.Image]]:
     for f, top, bottom, left, right, anchor in infos:
         canvas = Image.new('RGBA', report.frame_size, (0, 0, 0, 0))
         sprite = Image.fromarray(f.small[top:bottom, left:right])
-        canvas.paste(sprite, (1 + left_extent - (anchor - left), report.feet_y - (bottom - top)))
+        canvas.paste(sprite, (int(extent - (anchor - left)), report.feet_y - (bottom - top)))
         strips.setdefault(f.anim, []).append(canvas)
     return strips
 
@@ -326,12 +328,68 @@ def export(strips: dict[str, list[Image.Image]], report: Report, output: Path) -
     sheet.save(output / 'apercu.png')
 
 
+# Export pour le jeu : nom de l'animation dans le jeu -> (animation de la planche, images retenues).
+GAME_ANIMS = {
+    'idle': ('idle', slice(None)),
+    'run': ('run', slice(None)),
+    'jump': ('jump', slice(1, 4)),  # montée (sans l'accroupi du décollage)
+    'fall': ('jump', slice(4, 6)),  # descente (sans l'accroupi de l'atterrissage)
+    'hurt': ('damage', slice(None)),
+    'victory': ('item-interaction', slice(None)),
+    'throw': ('shuriken-throw', slice(None)),  # facultative dans le jeu
+    'death': ('death', slice(None)),  # facultative dans le jeu
+}
+# (images par seconde, répétition : -1 = en boucle, 0 = une fois)
+GAME_RATES = {
+    'idle': (8, -1), 'run': (12, -1), 'jump': (10, 0), 'fall': (6, -1),
+    'hurt': (12, 0), 'victory': (8, -1), 'throw': (18, 0), 'death': (8, 0),
+}
+# Le jeu dessine le monde zoomé ×2 : à l'échelle 0.5, chaque pixel du dessin reste un pixel à l'écran.
+GAME_SCALE = 0.5
+GAME_COLUMNS = 8
+
+
+def export_game(strips: dict[str, list[Image.Image]], report: Report, output: Path) -> None:
+    """Écrit player.png, player.json (atlas JSON Hash de Phaser) et character.json (voir le README du dossier)."""
+    output.mkdir(parents=True, exist_ok=True)
+    w, h = report.frame_size
+    frames = [(f'{game}/{i:02d}', img) for game, (source, part) in GAME_ANIMS.items()
+              for i, img in enumerate(strips[source][part])]
+    rows = -(-len(frames) // GAME_COLUMNS)
+    sheet = Image.new('RGBA', (GAME_COLUMNS * w, rows * h), (0, 0, 0, 0))
+    atlas_frames = {}
+    for i, (name, img) in enumerate(frames):
+        x, y = (i % GAME_COLUMNS) * w, (i // GAME_COLUMNS) * h
+        sheet.paste(img, (x, y))
+        atlas_frames[name] = {
+            'frame': {'x': x, 'y': y, 'w': w, 'h': h}, 'rotated': False, 'trimmed': False,
+            'spriteSourceSize': {'x': 0, 'y': 0, 'w': w, 'h': h}, 'sourceSize': {'w': w, 'h': h},
+        }
+    sheet.save(output / 'player.png')
+    atlas = {'frames': atlas_frames, 'meta': {'image': 'player.png', 'size': {'w': sheet.width, 'h': sheet.height}, 'scale': 1}}
+    (output / 'player.json').write_text(json.dumps(atlas, indent=2))
+
+    # Hitbox d'après le corps en position de repos : un peu plus étroite que la silhouette (bras exclus).
+    alpha = np.asarray(strips['idle'][0])[..., 3] > 0
+    ys, xs = np.nonzero(alpha)
+    body_w, body_h = xs.max() - xs.min() + 1, ys.max() - ys.min() + 1
+    character = {
+        'scale': GAME_SCALE,
+        'hitbox': {'width': int(round(body_w * 0.55)), 'height': int(body_h - 2), 'bottom': report.feet_y},
+        'animations': {name: {'frameRate': rate, 'repeat': repeat} for name, (rate, repeat) in GAME_RATES.items()},
+    }
+    (output / 'character.json').write_text(json.dumps(character, indent=2) + '\n')
+    print(f'Jeu : {len(frames)} images dans {output}/player.png ({sheet.width}x{sheet.height}), hitbox {character["hitbox"]}')
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--source', type=Path, default=SOURCE)
     parser.add_argument('--colors', type=int, default=16, help='taille de la palette (16 par défaut)')
     parser.add_argument('--pixel', type=float, help='forcer la taille d\'un pixel du dessin (sinon détectée)')
     parser.add_argument('--out', type=Path, default=OUTPUT, help=f'dossier de sortie ({OUTPUT} par défaut)')
+    parser.add_argument('--game', type=Path, metavar='DOSSIER',
+                        help='écrire aussi les fichiers du joueur pour le jeu (ex. public/assets/player)')
     args = parser.parse_args()
 
     rgb = np.asarray(Image.open(args.source).convert('RGB')).astype(np.int32)
@@ -347,6 +405,8 @@ def main() -> None:
         clean_islands(f)
     strips = align(frames, report)
     export(strips, report, args.out)
+    if args.game:
+        export_game(strips, report, args.game)
 
     (args.out / 'rapport.json').write_text(json.dumps(report.__dict__, indent=2, ensure_ascii=False))
     print(f'Pixel du dessin : {report.pixel_size:.2f} px de la planche')
