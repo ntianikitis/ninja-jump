@@ -36,6 +36,18 @@
               "Idle/animations/idle-combat/east/frame_007.png"
             ]
           },
+          "death": {
+            "east": [
+              "Idle/animations/death/east/frame_000.png",
+              "Idle/animations/death/east/frame_001.png",
+              "Idle/animations/death/east/frame_002.png",
+              "Idle/animations/death/east/frame_003.png",
+              "Idle/animations/death/east/frame_004.png",
+              "Idle/animations/death/east/frame_005.png",
+              "Idle/animations/death/east/frame_006.png",
+              "Idle/animations/death/east/frame_007.png"
+            ]
+          },
           "full-sprint": {
             "east": [
               "Idle/animations/full-sprint/east/frame_000.png",
@@ -46,6 +58,30 @@
               "Idle/animations/full-sprint/east/frame_005.png",
               "Idle/animations/full-sprint/east/frame_006.png",
               "Idle/animations/full-sprint/east/frame_007.png"
+            ]
+          },
+          "victory": {
+            "east": [
+              "Idle/animations/victory/east/frame_000.png",
+              "Idle/animations/victory/east/frame_001.png",
+              "Idle/animations/victory/east/frame_002.png",
+              "Idle/animations/victory/east/frame_003.png",
+              "Idle/animations/victory/east/frame_004.png",
+              "Idle/animations/victory/east/frame_005.png",
+              "Idle/animations/victory/east/frame_006.png",
+              "Idle/animations/victory/east/frame_007.png"
+            ]
+          },
+          "kick": {
+            "east": [
+              "Idle/animations/kick/east/frame_000.png",
+              "Idle/animations/kick/east/frame_001.png",
+              "Idle/animations/kick/east/frame_002.png",
+              "Idle/animations/kick/east/frame_003.png",
+              "Idle/animations/kick/east/frame_004.png",
+              "Idle/animations/kick/east/frame_005.png",
+              "Idle/animations/kick/east/frame_006.png",
+              "Idle/animations/kick/east/frame_007.png"
             ]
           },
           "sprint": {
@@ -66,6 +102,36 @@
               "Idle/animations/idle/east/frame_001.png",
               "Idle/animations/idle/east/frame_002.png",
               "Idle/animations/idle/east/frame_003.png"
+            ]
+          },
+          "hurt-2": {
+            "east": [
+              "Idle/animations/hurt-2/east/frame_000.png",
+              "Idle/animations/hurt-2/east/frame_001.png",
+              "Idle/animations/hurt-2/east/frame_002.png",
+              "Idle/animations/hurt-2/east/frame_003.png",
+              "Idle/animations/hurt-2/east/frame_004.png",
+              "Idle/animations/hurt-2/east/frame_005.png"
+            ]
+          },
+          "hurt": {
+            "east": [
+              "Idle/animations/hurt/east/frame_000.png",
+              "Idle/animations/hurt/east/frame_001.png",
+              "Idle/animations/hurt/east/frame_002.png",
+              "Idle/animations/hurt/east/frame_003.png",
+              "Idle/animations/hurt/east/frame_004.png",
+              "Idle/animations/hurt/east/frame_005.png"
+            ]
+          },
+          "throw": {
+            "east": [
+              "Idle/animations/throw/east/frame_000.png",
+              "Idle/animations/throw/east/frame_001.png",
+              "Idle/animations/throw/east/frame_002.png",
+              "Idle/animations/throw/east/frame_003.png",
+              "Idle/animations/throw/east/frame_004.png",
+              "Idle/animations/throw/east/frame_005.png"
             ]
           },
           "run": {
@@ -110,5 +176,5 @@
     }
   ],
   "export_version": "3.1",
-  "export_date": "2026-11-15T09:44:57.681119"
+  "export_date": "2026-11-15T09:59:27.356422"
 }
