@@ -1,0 +1,66 @@
+{
+  "group_id": "8b301f4e-8d6e-471b-b1d7-d84b8998c2a6",
+  "states": [
+    {
+      "character": {
+        "id": "e32fae94-1350-454e-8450-fe13efe6eaaf",
+        "name": "Idle",
+        "prompt": "small chibi red ninja, red hood and mask with red headband tails flowing behind, only the eyes visible, red outfit with belt, skin-coloured hands, dark red boots",
+        "size": {
+          "width": 64,
+          "height": 64
+        },
+        "template_id": "mannequin",
+        "directions": 4,
+        "view": "side",
+        "created_at": "2026-11-15T09:24:19.113499+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "west": "Idle/rotations/west.png",
+          "east": "Idle/rotations/east.png",
+          "north": "Idle/rotations/north.png"
+        },
+        "animations": {
+          "idle-combat": {
+            "east": [
+              "Idle/animations/idle-combat/east/frame_000.png",
+              "Idle/animations/idle-combat/east/frame_001.png",
+              "Idle/animations/idle-combat/east/frame_002.png",
+              "Idle/animations/idle-combat/east/frame_003.png",
+              "Idle/animations/idle-combat/east/frame_004.png",
+              "Idle/animations/idle-combat/east/frame_005.png",
+              "Idle/animations/idle-combat/east/frame_006.png",
+              "Idle/animations/idle-combat/east/frame_007.png"
+            ]
+          },
+          "idle": {
+            "east": [
+              "Idle/animations/idle/east/frame_000.png",
+              "Idle/animations/idle/east/frame_001.png",
+              "Idle/animations/idle/east/frame_002.png",
+              "Idle/animations/idle/east/frame_003.png"
+            ]
+          },
+          "idle-garde": {
+            "east": [
+              "Idle/animations/idle-garde/east/frame_000.png",
+              "Idle/animations/idle-garde/east/frame_001.png",
+              "Idle/animations/idle-garde/east/frame_002.png",
+              "Idle/animations/idle-garde/east/frame_003.png",
+              "Idle/animations/idle-garde/east/frame_004.png",
+              "Idle/animations/idle-garde/east/frame_005.png",
+              "Idle/animations/idle-garde/east/frame_006.png",
+              "Idle/animations/idle-garde/east/frame_007.png",
+              "Idle/animations/idle-garde/east/frame_008.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-11-15T09:33:06.698006"
+}

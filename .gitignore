@@ -30,8 +30,10 @@ dist-ssr
 Thumbs.db
 Desktop.ini
 
-# Packs d'assets bruts (non versionnés)
-assets-source/
+# Packs d'assets bruts (non versionnés), sauf le ninja généré avec PixelLab
+assets-source/*
+!assets-source/pixellab/
+assets-source/pixellab/*.zip
 
 # Environnement et cache Python des outils
 tools/.venv/
