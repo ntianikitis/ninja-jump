@@ -36,8 +36,14 @@ Les images sont dessinées **tournées vers la droite** : le jeu les retourne po
 
 ## Personnage actuel
 
-Ninja rouge en pixel art, nettoyé depuis la planche `assets-source/reference/character-exemple.jpeg`
-par l'outil `tools/clean_spritesheet.py`, qui écrit directement ces trois fichiers :
+Ninja rouge en pixel art vu de profil, généré avec PixelLab (voir `assets-source/pixellab/README.md`) puis
+assemblé par l'outil `tools/pixellab_to_game.py`, qui écrit directement ces trois fichiers (le choix des
+images et les vitesses sont en haut de l'outil) :
+
+    tools/.venv/bin/python tools/pixellab_to_game.py
+
+L'animation `throw` est un coup de pied. L'ancien ninja (de face, nettoyé depuis la planche
+`assets-source/reference/character-exemple.jpeg`) se régénère avec :
 
     tools/.venv/bin/python tools/clean_spritesheet.py --game public/assets/player
 

@@ -1,13 +1,13 @@
 {
   "scale": 0.5,
   "hitbox": {
-    "width": 20,
-    "height": 47,
-    "bottom": 55
+    "width": 23,
+    "height": 51,
+    "bottom": 58
   },
   "animations": {
     "idle": {
-      "frameRate": 8,
+      "frameRate": 10,
       "repeat": -1
     },
     "run": {
@@ -27,7 +27,7 @@
       "repeat": 0
     },
     "victory": {
-      "frameRate": 8,
+      "frameRate": 10,
       "repeat": -1
     },
     "throw": {

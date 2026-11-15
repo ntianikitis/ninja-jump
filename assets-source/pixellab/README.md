@@ -2,11 +2,13 @@
 
 Personnage PixelLab « Ninja rouge » (id `e32fae94-1350-454e-8450-fe13efe6eaaf`), créé en mode v3 à partir de
 `reference-64.png` (première image idle de `assets-source/reference/character-exemple.jpeg`), vue `side`.
-Pas encore intégré au jeu : on attend d'avoir aussi la course et le saut.
+Intégré au jeu par `tools/pixellab_to_game.py` (choix des images et vitesses en haut de l'outil).
 
 - `ninja-profil.png` : image statique tournée vers la droite (64×64, ninja de 55 px de haut ≈ 1,5 tuile à l'échelle 0.5).
-- `idle-garde.png` / `.gif` : **idle retenu**, garde de combat qui sautille (8 images 84×84, ~10 i/s).
-- `idle-combat.png` / `.gif` : variante en garde quasi immobile (5 images 84×84), gardée au cas où.
+- `idle-garde.png` / `.gif` : variante, garde de combat qui sautille (8 images 84×84).
+- `idle-combat.png` / `.gif` : variante, garde quasi immobile mais de trois quarts (pied avant en l'air).
+- **Idle retenu** : `ninja/Idle/animations/idle-profil` (garde vraiment de profil, images 3 à 8). PixelLab y
+  dessine le pied avant 5 px trop haut : `tools/pixellab_to_game.py` le redescend en allongeant le tibia.
 - `full-sprint.png` / `.gif` : **course retenue**, sprint penché en avant (8 images 84×84, ~12 i/s). Les pieds
   flottent de 3 à 5 px au-dessus du bas de l'image : à recaler à l'intégration.
 - `run.png` / `.gif` : variante de course, petit trot droit (8 images 84×84).
