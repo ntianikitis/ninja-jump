@@ -137,6 +137,14 @@ export class Player extends Phaser.GameObjects.Sprite {
     return true
   }
 
+  /** Projeté vers le haut (ressort) : remplace un saut normal. */
+  bounce(velocityY: number) {
+    this.body.setVelocityY(velocityY)
+    this.lastGroundedAt = -Infinity
+    this.jumpRequestedAt = -Infinity
+    this.playAnim('jump')
+  }
+
   /** Arrivée atteinte : le joueur s'arrête et fête sa victoire. */
   celebrate() {
     this.freeze()

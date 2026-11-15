@@ -44,6 +44,11 @@ export const TILES = {
   flag: 111,
   flagWaving: 112,
   flagPole: 131,
+  // Planche (plateforme mobile, répétée sur sa largeur), ressort, pics.
+  plank: 146,
+  springDown: 107,
+  springUp: 108,
+  spikes: 68,
   // Police du pack : « x » et chiffres 0 à 9 (160 + chiffre).
   times: 158,
   digit0: 160,
@@ -54,12 +59,17 @@ export const CHARS = {
   // Bestiole à casque à pointes (2 images de marche).
   spikyWalk1: 15,
   spikyWalk2: 16,
+  // Chauve-souris : ailes hautes, à plat, basses.
+  batUp: 24,
+  batMid: 25,
+  batDown: 26,
 } as const
 
 export const ANIMS = {
   enemyWalk: 'enemy-walk',
   coinSpin: 'coin-spin',
   flagWave: 'flag-wave',
+  flyerFlap: 'flyer-flap',
 } as const
 
 /** Animations des éléments du pack (à créer une fois, dans BootScene). */
@@ -67,6 +77,12 @@ export function createKenneyAnimations(scene: Phaser.Scene) {
   const frames = (key: string, ...ids: number[]) => ids.map((frame) => ({ key, frame }))
   scene.anims.create({ key: ANIMS.enemyWalk, frames: frames(KENNEY.characters, CHARS.spikyWalk1, CHARS.spikyWalk2), frameRate: 6, repeat: -1 })
   scene.anims.create({ key: ANIMS.coinSpin, frames: frames(KENNEY.tiles, TILES.coin, TILES.coinTurned), frameRate: 4, repeat: -1 })
+  scene.anims.create({
+    key: ANIMS.flyerFlap,
+    frames: frames(KENNEY.characters, CHARS.batUp, CHARS.batMid, CHARS.batDown, CHARS.batMid),
+    frameRate: 8,
+    repeat: -1,
+  })
   scene.anims.create({ key: ANIMS.flagWave, frames: frames(KENNEY.tiles, TILES.flag, TILES.flagWaving), frameRate: 4, repeat: -1 })
 }
 

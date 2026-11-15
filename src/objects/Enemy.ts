@@ -3,28 +3,44 @@ import { ANIMS, CHARS, KENNEY } from '../art/kenneyTiles'
 import { PX_ANIMS, TEX } from '../art/pixelTextures'
 import { ENEMY_PATROL_DISTANCE, ENEMY_SPEED } from '../config'
 
-// Hitbox dans l'image de 24x24 : le corps de la bestiole, sans la pointe du casque.
-const HITBOX = { width: 14, height: 13, offsetX: 5, offsetY: 11 }
+export type EnemyLook = {
+  frame: number
+  anim: string
+  /** Hitbox dans l'image de 24x24. */
+  hitbox: { width: number; height: number; offsetX: number; offsetY: number }
+  speed: number
+}
 
-/** Ennemi (bestiole du pack Kenney) qui patrouille autour de sa position de départ ; y = ses pieds. */
+// Bestiole à casque : hitbox = le corps, sans la pointe du casque.
+const SPIKY: EnemyLook = {
+  frame: CHARS.spikyWalk1,
+  anim: ANIMS.enemyWalk,
+  hitbox: { width: 14, height: 13, offsetX: 5, offsetY: 11 },
+  speed: ENEMY_SPEED,
+}
+
+/** Ennemi du pack Kenney qui patrouille autour de sa position de départ ; y = ses pieds. */
 export class Enemy extends Phaser.GameObjects.Sprite {
   declare body: Phaser.Physics.Arcade.Body
 
   private readonly minX: number
   private readonly maxX: number
+  private readonly speed: number
 
   /** `patrolDistance` : distance totale parcourue entre les deux demi-tours (px). */
-  constructor(scene: Phaser.Scene, x: number, y: number, patrolDistance = ENEMY_PATROL_DISTANCE) {
-    super(scene, x, y, KENNEY.characters, CHARS.spikyWalk1)
+  constructor(scene: Phaser.Scene, x: number, y: number, patrolDistance = ENEMY_PATROL_DISTANCE, look = SPIKY) {
+    super(scene, x, y, KENNEY.characters, look.frame)
     this.setOrigin(0.5, 1)
+    this.speed = look.speed
 
     scene.add.existing(this)
     scene.physics.add.existing(this)
-    this.body.setSize(HITBOX.width, HITBOX.height, false).setOffset(HITBOX.offsetX, HITBOX.offsetY)
-    this.play(ANIMS.enemyWalk)
+    const { width, height, offsetX, offsetY } = look.hitbox
+    this.body.setSize(width, height, false).setOffset(offsetX, offsetY)
+    this.play(look.anim)
     this.body.setAllowGravity(false)
     this.body.setImmovable(true)
-    this.body.setVelocityX(ENEMY_SPEED)
+    this.body.setVelocityX(this.speed)
 
     this.minX = x - patrolDistance / 2
     this.maxX = x + patrolDistance / 2
@@ -38,11 +54,11 @@ export class Enemy extends Phaser.GameObjects.Sprite {
     this.destroy()
   }
 
-  update() {
+  update(_time?: number, _delta?: number) {
     if (this.x >= this.maxX && this.body.velocity.x > 0) {
-      this.body.setVelocityX(-ENEMY_SPEED)
+      this.body.setVelocityX(-this.speed)
     } else if (this.x <= this.minX && this.body.velocity.x < 0) {
-      this.body.setVelocityX(ENEMY_SPEED)
+      this.body.setVelocityX(this.speed)
     }
   }
 }

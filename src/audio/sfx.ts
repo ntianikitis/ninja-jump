@@ -28,6 +28,11 @@ export class Sfx {
     this.tone(140, 120, 0.06, 'square', 0.08)
   }
 
+  /** « Boing » du ressort : note qui monte vite. */
+  boing() {
+    this.tone(160, 640, 0.22, 'triangle', 0.18)
+  }
+
   /** Petit « tip » : objet ramassé. */
   pickup() {
     this.tone(990, 1480, 0.08, 'triangle', 0.12)

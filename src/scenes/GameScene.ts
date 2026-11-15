@@ -4,6 +4,7 @@ import { TEX } from '../art/pixelTextures'
 import { Sfx } from '../audio/sfx'
 import {
   ENEMY_PATROL_DISTANCE,
+  SPRING_VELOCITY,
   LIFE_LOST_MS,
   PLAYER_MAX_HEALTH,
   PLAYER_START_LIVES,
@@ -23,8 +24,11 @@ import {
 } from '../levels/tiledLevel'
 import { Chest } from '../objects/Chest'
 import { Enemy } from '../objects/Enemy'
+import { FlyingEnemy } from '../objects/FlyingEnemy'
+import { MovingPlatform } from '../objects/MovingPlatform'
 import { HEALTH_CHANGED, HEALTH_DEPLETED, Player } from '../objects/Player'
 import { Shuriken } from '../objects/Shuriken'
+import { Spring } from '../objects/Spring'
 import { Hud } from '../ui/Hud'
 import { LivesCounter } from '../ui/LivesCounter'
 import type { TileCounter } from '../ui/TileCounter'
@@ -41,6 +45,12 @@ const REWARD_STAGGER_MS = 120
 const REWARD_FLIGHT_MS = 650
 // Profondeurs d'affichage des calques Tiled (le joueur et les objets sont à 0).
 const DEPTH = { background: -100, decorBack: -10, terrain: -5, foreground: 500 }
+// Pics : hauteur dangereuse (les pointes, en bas de la tuile) et marge sur les côtés.
+const SPIKES_HEIGHT = 8
+const SPIKES_SIDE_MARGIN = 2
+/** Lit une propriété Tiled numérique, avec une valeur par défaut. */
+const numberProp = (props: Record<string, unknown>, name: string, fallback: number) =>
+  typeof props[name] === 'number' ? (props[name] as number) : fallback
 
 /** Celui des deux objets d'un contact qui est un shuriken (l'ordre n'est pas garanti). */
 const asShuriken = (a: unknown, b: unknown) => [a, b].find((obj) => obj instanceof Shuriken)
@@ -49,6 +59,7 @@ export class GameScene extends Phaser.Scene {
   private inputController!: InputController
   private player!: Player
   private enemies: Enemy[] = []
+  private platforms: MovingPlatform[] = []
   private shurikens!: Phaser.Physics.Arcade.Group
   private livesCounter!: LivesCounter
   private ammoCounter!: TileCounter
@@ -69,6 +80,7 @@ export class GameScene extends Phaser.Scene {
   create() {
     // La scène est réutilisée par restart() : on remet son état à zéro.
     this.enemies = []
+    this.platforms = []
     this.finished = false
     this.lives = PLAYER_START_LIVES
     this.coins = 0
@@ -105,6 +117,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player, terrain)
 
     for (const entity of entities) this.spawnObject(entity)
+    this.physics.add.collider(this.player, this.platforms)
 
     this.physics.add.overlap(this.player, this.enemies, (_player, enemy) =>
       this.player.hit((enemy as Enemy).x),
@@ -147,17 +160,39 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Crée l'élément de jeu correspondant à un objet du calque Objets (par son nom). */
-  private spawnObject({ name, x, bottom, props }: LevelEntity) {
+  private spawnObject({ name, x, bottom, width, height, props }: LevelEntity) {
     // Les objets « au sol » (pièces, cœurs…) ont leur centre une demi-tuile au-dessus de leur bas.
     const center = bottom - TILE_SIZE / 2
     switch (name) {
       case 'player-start':
         break
-      case 'enemy': {
-        const patrolTiles = typeof props.patrol === 'number' ? props.patrol : undefined
-        this.enemies.push(new Enemy(this, x, bottom, patrolTiles ? patrolTiles * TILE_SIZE : ENEMY_PATROL_DISTANCE))
+      case 'enemy':
+        this.enemies.push(new Enemy(this, x, bottom, numberProp(props, 'patrol', ENEMY_PATROL_DISTANCE / TILE_SIZE) * TILE_SIZE))
+        break
+      case 'flyer':
+        this.enemies.push(
+          new FlyingEnemy(this, x, bottom, numberProp(props, 'patrol', 6) * TILE_SIZE, numberProp(props, 'amplitude', 1) * TILE_SIZE),
+        )
+        break
+      case 'platform': {
+        // Rectangle Tiled : (x, bottom) = centre en bas ; la plateforme part de son coin haut-gauche.
+        const platformWidth = Math.max(width, TILE_SIZE)
+        const top = bottom - Math.max(height, TILE_SIZE)
+        this.platforms.push(
+          new MovingPlatform(this, x - platformWidth / 2, top, platformWidth, {
+            axis: props.axis === 'y' ? 'y' : 'x',
+            distance: numberProp(props, 'distance', 4) * TILE_SIZE,
+            speed: typeof props.speed === 'number' ? props.speed : undefined,
+          }),
+        )
         break
       }
+      case 'spring':
+        this.createSpring(x, bottom, numberProp(props, 'power', 1))
+        break
+      case 'spikes':
+        this.createSpikes(x, bottom, Math.max(width, TILE_SIZE))
+        break
       case 'coin':
         this.createCoin(x, center)
         break
@@ -181,9 +216,10 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  update() {
+  update(time: number, delta: number) {
     this.inputController.update()
-    for (const enemy of this.enemies) enemy.update()
+    for (const enemy of this.enemies) enemy.update(time, delta)
+    for (const platform of this.platforms) platform.update(time)
     // Copie : un shuriken peut se détruire pendant sa mise à jour.
     for (const shuriken of [...this.shurikens.getChildren()]) shuriken.update()
 
@@ -330,6 +366,25 @@ export class GameScene extends Phaser.Scene {
       this.tweens.killTweensOf(heart)
       heart.destroy()
     })
+  }
+
+  /** Ressort : en retombant dessus, le joueur est projeté vers le haut. */
+  private createSpring(x: number, bottom: number, power: number) {
+    const spring = new Spring(this, x, bottom, power)
+    this.physics.add.collider(this.player, spring, () => {
+      if (!this.player.body.touching.down) return
+      spring.squash()
+      this.player.bounce(SPRING_VELOCITY * spring.power)
+      this.sfx.boing()
+    })
+  }
+
+  /** Rangée de pics (largeur en px) : seules les pointes, en bas, font perdre un cœur. */
+  private createSpikes(x: number, bottom: number, width: number) {
+    this.add.tileSprite(x, bottom, width, TILE_SIZE, KENNEY.tiles, TILES.spikes).setOrigin(0.5, 1)
+    const zone = this.add.zone(x, bottom - SPIKES_HEIGHT / 2, width - 2 * SPIKES_SIDE_MARGIN, SPIKES_HEIGHT)
+    this.physics.add.existing(zone, true)
+    this.physics.add.overlap(this.player, zone, () => this.player.hit(x))
   }
 
   /** Énergie (petit shuriken qui flotte) : +1 shuriken. */

@@ -29,9 +29,17 @@ Tiled est gratuit : `brew install --cask tiled` (ou mapeditor.org).
   à la grille* aide), puis dans *Propriétés* taper le **Nom** : `coin`.
 - **Ajouter un ennemi** : pareil, avec la bestiole du tileset `kenney-characters`, nom `enemy`, posée sur le sol.
   Propriété facultative `patrol` (entier) : largeur de patrouille en tuiles (4 par défaut).
-- **Noms reconnus** : `player-start` (un seul), `enemy`, `coin`, `heart`, `energy` (+1 shuriken), `checkpoint`,
-  `flag` (un seul, l'arrivée), `chest` (propriété facultative `shurikens`, 5 par défaut). Le tileset `markers`
+- **Noms reconnus** : `player-start` (un seul), `enemy`, `flyer`, `coin`, `heart`, `energy` (+1 shuriken), `checkpoint`,
+  `flag` (un seul, l'arrivée), `platform`, `spring`, `spikes`, `chest` (propriété facultative `shurikens`, 5 par défaut). Le tileset `markers`
   sert de repère visuel pour le départ, le coffre et l'énergie. Un nom inconnu est ignoré (message dans la console).
+- **Plateforme mobile** : un **rectangle** nommé `platform` (sa largeur = celle de la plateforme). Propriétés :
+  `axis` (`x` = va vers la droite puis revient, `y` = monte puis redescend), `distance` (tuiles, 4 par défaut),
+  `speed` (px/s, facultatif). On la traverse par-dessous et elle emporte le joueur.
+- **Ressort** : tuile du ressort, nom `spring`, posée sur le sol (on saute dessus pour rebondir). Propriété
+  facultative `power` (1 = environ 6 tuiles de haut).
+- **Pics** : tuile de pics nommée `spikes`, ou **rectangle** `spikes` pour une rangée (−1 cœur au contact).
+- **Ennemi volant** : chauve-souris du tileset `kenney-characters`, nom `flyer`. Propriétés : `patrol` (tuiles,
+  6 par défaut), `amplitude` (hauteur de la vague en tuiles, 1 par défaut).
 - **Exporter** : il n'y a rien à exporter, la map est déjà au format du jeu : **Cmd+S** (*Fichier > Enregistrer*)
   suffit, le navigateur se recharge tout seul.
 - **À ne pas changer** : garder le format des calques en **CSV** (*Carte > Propriétés de la carte*) et les

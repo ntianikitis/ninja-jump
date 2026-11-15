@@ -16,11 +16,13 @@ export const LAYERS = {
 /** Nom du tileset du pack dans Tiled (doit correspondre au fichier .tmj). */
 export const TILESET_NAME = 'kenney-tiles'
 
-/** Objet du calque Objets : nom, centre horizontal et bas (en pixels), propriétés personnalisées. */
+/** Objet du calque Objets : nom, centre horizontal, bas et taille (en pixels), propriétés personnalisées. */
 export type LevelEntity = {
   name: string
   x: number
   bottom: number
+  width: number
+  height: number
   props: Record<string, unknown>
 }
 
@@ -40,7 +42,7 @@ export function readEntities(map: Phaser.Tilemaps.Tilemap): LevelEntity[] {
 
     const raw = obj.properties as TiledProperty[] | Record<string, unknown> | undefined
     const props = Array.isArray(raw) ? Object.fromEntries(raw.map((p) => [p.name, p.value])) : (raw ?? {})
-    return { name: obj.name ?? '', x, bottom, props }
+    return { name: obj.name ?? '', x, bottom, width, height, props }
   })
 }
 

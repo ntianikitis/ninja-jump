@@ -34,5 +34,12 @@ export const SHURIKEN_SPEED = 180
 export const SHURIKEN_RANGE = 144
 export const SHURIKEN_COOLDOWN_MS = 350
 
+// Plateformes mobiles : vitesse moyenne (px/s) ; ressorts : vitesse d'éjection (~6 tuiles de haut).
+export const PLATFORM_SPEED = 30
+export const SPRING_VELOCITY = -300
+// Ennemi volant : vitesse horizontale (px/s) et durée d'une vague (ms).
+export const FLYER_SPEED = 30
+export const FLYER_WAVE_MS = 1600
+
 // Contours de collision visibles (utile pour régler hitbox et niveau).
 export const DEBUG_PHYSICS = false
